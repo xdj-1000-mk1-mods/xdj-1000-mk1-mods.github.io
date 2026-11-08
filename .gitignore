@@ -1,0 +1,17 @@
+# Never commit firmware or anything derived from it (decoded images, built
+# updates, stick files, screenshots of the deck's screens).
+*.UPD
+*.upd
+*.img
+*.vm
+*.BIN
+*.bin
+*.png
+!docs/img/*.png
+out/
+src/work/
+src/mk1/manifest.json
+src/mk1/snapshots/
+.venv/
+__pycache__/
+.DS_Store

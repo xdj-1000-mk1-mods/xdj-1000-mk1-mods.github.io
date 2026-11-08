@@ -1,0 +1,835 @@
+{
+  "note": "Addresses are in the decoded MAIN image (block 1, base 0x08000000). Every entry carries evidence; unverified ones say so.",
+  "model": "XDJ-1000",
+  "fw": "1.13",
+  "upd_sha256": "2da48a1baa999e3c36f62b7b7f1732a6f4c7ca2a37f636c13b0b3cbf8de94d75",
+  "image_sha256": "9863ea4d9b77441ad99b37bd0da69b15c11e19bc477e50d995e3ccde1a7514ee",
+  "entries": {
+    "version_record": {
+      "addr": "0x08000700",
+      "fields": {
+        "vendor": "0x08000700",
+        "model": "0x08000720",
+        "version": "0x08000740",
+        "date": "0x08000760"
+      },
+      "field_len": 32,
+      "expect": {
+        "version": "1.13",
+        "model": "XDJ-1000"
+      },
+      "evidence": "bytes: 'PIONEER' / 'XDJ-1000' / '1.13' / '20170928' in 32-byte NUL-padded fields at the same offsets as the 700; UTILITY 'VERSION No.' shows 'Ver 1.13' (emulator screenshot work/emu/mk1_util_end.png)",
+      "unverified": false
+    },
+    "bj_pad_sprites": {
+      "w": 80,
+      "h": 63,
+      "format": "RGB565 little-endian, row-major, no header",
+      "styles": 3,
+      "style_names": [
+        "normal",
+        "lit (pressed)",
+        "dim (unavailable)"
+      ],
+      "style_stride": 10080,
+      "digit_y0": 25,
+      "digit_box": "x 34-44, y 25-40 (11x16)",
+      "pads": [
+        {
+          "label": "1",
+          "dir": "fwd",
+          "code": 2,
+          "addr": "0x082f4a00"
+        },
+        {
+          "label": "2",
+          "dir": "fwd",
+          "code": 4,
+          "addr": "0x082fc020"
+        },
+        {
+          "label": "4",
+          "dir": "fwd",
+          "code": 6,
+          "addr": "0x08303640"
+        },
+        {
+          "label": "1",
+          "dir": "rev",
+          "code": 1,
+          "addr": "0x0830ac60"
+        },
+        {
+          "label": "2",
+          "dir": "rev",
+          "code": 3,
+          "addr": "0x08312280"
+        },
+        {
+          "label": "4",
+          "dir": "rev",
+          "code": 5,
+          "addr": "0x083198a0"
+        }
+      ],
+      "screen": "pad origins y 144: rev1 x116, fwd1 x194, rev2 x288, fwd2 x366, rev4 x460, fwd4 x538",
+      "evidence": "CDJ_2DG_LOG on the PERFORM screen (QEMU 11.1.2): one 80x63 blit per pad from these addresses (pitch 0x50 px) to the pad positions; rendered they show the pad art with the digit baked in, styles 3 apart (0x7620 between pads); the 1 and 2 sprites differ only inside the 11x16 digit box",
+      "unverified": false,
+      "label_offset_from_bl": {
+        "rev": {
+          "dx": -1,
+          "dy": 7
+        },
+        "fwd": {
+          "dx": 0,
+          "dy": 7
+        },
+        "measured": "glyph centroids of 1/2/4 (BEAT JUMP minus BEAT LOOP): rev dx -1.40..-1.48, fwd dx +0.39..+0.42, dy +7.38..+7.49; rounded to whole pixels, so a transplanted label sits within ~0.5 px of the firmware's own placement"
+      }
+    },
+    "bl_pad_sprites": {
+      "w": 80,
+      "h": 53,
+      "format": "RGB565 little-endian, row-major",
+      "styles": 6,
+      "style_names": [
+        "normal",
+        "lit",
+        "dim",
+        "active (orange)",
+        "active lit",
+        "active dim"
+      ],
+      "style_stride": 8480,
+      "digit_y0": 18,
+      "digit_box": "x 34-44, y 18-33 (same 11x16 glyph size as the BEAT JUMP digits)",
+      "pads": [
+        {
+          "label": "1/2",
+          "addr": "0x0835d5e0"
+        },
+        {
+          "label": "1",
+          "addr": "0x083593a0"
+        },
+        {
+          "label": "2",
+          "addr": "0x08372120"
+        },
+        {
+          "label": "4",
+          "addr": "0x0837e7e0"
+        },
+        {
+          "label": "8",
+          "addr": "0x0838aea0"
+        },
+        {
+          "label": "16",
+          "addr": "0x0834cce0"
+        }
+      ],
+      "evidence": "CDJ_2DG_LOG after LOOP MODE: these 80x53 sprites are blitted into the bottom-row layer 0x0C86D900; styles 0-2 match the BEAT JUMP styles (rendered in work/longjump/probe/loop_states.png)",
+      "unverified": false
+    },
+    "bj_handler": {
+      "addr": "0x08ce8d2e",
+      "dispatcher": "0x08ce8b20",
+      "args": "r4 = pad code 1..6",
+      "evidence": "see mk1/traced_map.json bj_handler (head pattern unique, 6 dispatcher stubs, FWTRACE r4 per pad, direct calls jump +-1/2/4 beats)",
+      "unverified": false
+    },
+    "bj_table": {
+      "base": "0x080b7c40",
+      "alias": "0xa80b7c40 (uncached; this is the literal the handler and dispatcher load, pool 0x08ce8fcc)",
+      "format": "8-byte entries indexed by pad code: +0 u32 beats, +4 u32 direction (1 = reverse, 0 = forward). Entry 0 is (0,0).",
+      "entries": {
+        "1": "0x080b7c48 <<1 (1,1)",
+        "2": "0x080b7c50 >>1 (1,0)",
+        "3": "0x080b7c58 <<2 (2,1)",
+        "4": "0x080b7c60 >>2 (2,0)",
+        "5": "0x080b7c68 <<4 (4,1)",
+        "6": "0x080b7c70 >>4 (4,0)"
+      },
+      "units": "whole beats of the track's beat grid",
+      "handler_use": "entry = base + code*8; count = beats available in entry.direction (0x08cd3552 -> 0x08bc185e rev / 0x08bc1778 fwd, on the player struct 0x0c724340); jump only if count >= entry.beats (signed cmp/ge), otherwise the handler returns with no jump (refused, not clamped)",
+      "end": "0x080b7c78 starts another table (300,200,320,200,600,1000,...; used by 0x08cf0930): not part of the jump table",
+      "presets": {
+        "stock": {
+          "beats": [
+            1,
+            2,
+            4
+          ],
+          "status": "stock values; all pads OK"
+        },
+        "long": {
+          "beats": [
+            4,
+            8,
+            16
+          ],
+          "status": "jumps PASS (all pads, QUANTIZE on/off, edge cases); labels PENDING"
+        },
+        "xlong": {
+          "beats": [
+            8,
+            16,
+            32
+          ],
+          "status": "jumps PASS (all pads, QUANTIZE on/off); edge cases not run; labels PENDING (no firmware '3' glyph)"
+        },
+        "test": {
+          "beats": [
+            16,
+            32,
+            64
+          ],
+          "status": "FAIL: >>64 and <<64 refused (forward limit 46 beats; <<64 needs 32 s behind the playhead)"
+        }
+      },
+      "evidence": "handler disassembly 0x08ce8f14-0x08ce8f4c; PPOKE 1->8 and 1->16 at handler entry gave +3.94/-8.09 s (QEMU 9.1) and +4.01/-8.00 s (QEMU 11.1.2)",
+      "unverified": false,
+      "limits": {
+        "reverse": "limited only by the beats available before the playhead (track start): 48, 64 and 100 beats all jumped from far enough in; near the start a jump that does not fit is refused, not clamped (8 s in: <<8 jumped, <<16 refused)",
+        "forward": "refused above 46 beats on the 120.19 BPM test track (46 jumped, 47/48/56/60/63/64 refused) although ~120 beats remained; 46 beats = ~23 s, so this looks like a time-based read-ahead limit, UNVERIFIED at other tempos",
+        "sign": "u32 compared signed (cmp/ge); values above 0x7FFFFFFF would be negative and never jump; no preset comes near",
+        "quantize": "jumps keep the beat count; with QUANTIZE on the landing point snaps to the grid (offset < half a beat, same for all pads)",
+        "loop": "while a loop is active the same pads are LOOP MOVE and use the same table: a preset changes loop-move sizes too (long: moved 4 and 16 beats)",
+        "slip": "with SLIP on the pad jump is momentary and returns when released, for stock and presets alike",
+        "no_grid": "a track with no rekordbox analysis still jumps (from its BPM tag), stock and presets alike",
+        "evidence": "mk1/longjump_test.py + mk1/longjump_edges.py results in work/longjump/ (QEMU 11.1.2, test track 120.19 BPM)"
+      },
+      "decision_2026_11_01": {
+        "max_preset": "xlong (8/16/32)",
+        "labels": "the 32 pads (codes 5/6) show no number (blank label); 8 and 16 still to be drawn",
+        "status": "parked while the 3-band/RGB waveform port is done",
+        "by": "user"
+      }
+    },
+    "bj_pads_touch": {
+      "pads": {
+        "1": [
+          154,
+          175
+        ],
+        "2": [
+          231,
+          175
+        ],
+        "3": [
+          326,
+          175
+        ],
+        "4": [
+          404,
+          175
+        ],
+        "5": [
+          498,
+          175
+        ],
+        "6": [
+          576,
+          175
+        ]
+      },
+      "quantize_xy": [
+        676,
+        259
+      ],
+      "evidence": "tap -> FWTRACE handler r4 = 1..6 in this order (work/trace/xdj1000 runs)",
+      "unverified": false
+    },
+    "touch_zone_state": {
+      "addr": "0x0eae7658",
+      "values": {
+        "none": "0x23",
+        "hot_cue_row": "0x1e",
+        "beat_jump_pad": "0x16"
+      },
+      "evidence": "see mk1/traced_map.json touch_zone_state (21 structural votes; sampled during taps)",
+      "unverified": false
+    },
+    "play_state": {
+      "addr": "0x0e0c4228",
+      "evidence": "the beat-jump handler (0x08ce8d2e) tests this word for 3,4,5,7,8,9 exactly where the 700 handler tests 0x0b6c4264 (PLAYW); 80/81 literal votes",
+      "unverified": true,
+      "note": "3 = playing on MK1 (qemu emu-play + deck agree); the 700 value 5 does not carry over",
+      "hardware": "deck 2026-11-01 (read-only, deck_read.py, rekordbox track playing): = 3 while playing (unexpected vs 5 = playing; meaning unconfirmed)"
+    },
+    "anlz_ctx_table": {
+      "addr": "0x0c226be4",
+      "extra_index_off": "0x13b8",
+      "format": "[addr] = ANLZ context of the USB slot; ctx+0x13b8: u32 count, then 16-byte entries {u32 file offset, u32 tag (ASCII, as stored), u32 length, u32 pointer to the raw big-endian section}",
+      "evidence": "literal votes 9/9 (700 0x09826be4); emulator: with work/testusb/3band_usb.img loaded, [0x0c226be4] = 0x0f519f58 and ctx+0x13b8 holds count 5: PQT2 PWV5 PWV4 PWV6 PWV7, each pointer at the section header ('PWV6' 1200 x 3 B, 'PWV7' 13500 x 3 B = 90 s at 150/s)",
+      "hardware": "deck 2026-11-01 (read-only, deck_read.py, rekordbox track playing): = 0x0f55d930 (non-zero pointer)",
+      "unverified": false
+    },
+    "overview_painter": {
+      "addr": "0x08d62f64",
+      "release_slot": "0x08d63310",
+      "release_fn": "0x08bd1f28",
+      "preview": "0x0e43bd80",
+      "evidence": "700 0x08dbc230 vs MK1 0x08d62f64: 92% identical masked opcodes (runs of 210 and 212 instructions); both load the release slot at +0x35e (700 slot 0x08dbc5c8 = 0x08c2c984, MK1 0x08d63310 = 0x08bd1f28, mapped high). CDJ_MWATCH on the overview layer 0x0c81f300 (2DG-composited at (116,407), 504x34): the waveform pixels are written from 0x08d63058/0x08d63080/0x08d63244.. inside it, ~17 times a second. PREVIEW: the literal at painter+0x260 on both (700 0x0ba3bccc); RAM there = the loaded track's PWAV decoded to (height, whiteness) pairs, 760/800 bytes equal (every 20th entry carries a firmware marker)",
+      "unverified": false,
+      "behaviour": "upstream overview cave via release_slot: RGB (PWV4) and 3-band (PWV6) layers match upstream's model_pixels pixel for pixel (17000/17000), installed before or after the track loads"
+    },
+    "centre_painter": {
+      "addr": "0x08d6a6ea",
+      "palette_slot": "0x08d6aac8",
+      "palette": "0x141357f4",
+      "colour_fetch": "0x08d6a8ba",
+      "row_load": "0x08d6a8d2",
+      "twin_addr": "0x08d694c0",
+      "twin_palette_slot": "0x08d696cc",
+      "twin_palette": "0x14135664",
+      "twin_colour_fetch": "0x08d6964a",
+      "twin_row_load": "0x08d69666",
+      "evidence": "700 0x08dc39b6 vs MK1 0x08d6a6ea: 93.5% identical masked opcodes; every upstream site maps through the alignment to the SAME instruction word (0x08dc3b7e..0x08dc3b9e -> 0x08d6a8b2..0x08d6a8d2, constant offset); palette slot = the pool the mapped 'mov.l @(disp,pc),r4' loads. Twin (PERFORM strip): 700 0x08dc2754 vs MK1 0x08d694c0, 87.9%; shll r2 and the row load map to identical words; the palette load is the same mov.l to r6 with another displacement. MWATCH: 0x08d6a6ea writes the centre waveform's layer.",
+      "unverified": false,
+      "note": "verified by behaviour once the centre mod draws (pending sh-elf-gcc)",
+      "behaviour": "upstream cw.c + dcave/dcave2 installed at these sites (QEMU 11.1.2): main-screen centre and PERFORM strip draw RGB (mode 1) and stacked 3-band (mode 2); 95.9% of the 3-band waveform pixels are exactly upstream's C_CORE/C_MIDC/C_OUTER, the rest white playhead/ticks and red beat marks; mode 0 looks stock"
+    },
+    "ram_home_candidate": {
+      "addr": "0x09800000",
+      "len": "0x200000",
+      "evidence": "bank 0 above the image is all zero in the loaded state; junk-fill (0xA5) over 0x09800000-0x099fffff survived every window tried (13 at 512 KB, 10 at 2 MB, both incl. a full track reload): no firmware writes",
+      "hardware": "deck 2026-11-01 read-only survey (mk1/deck_survey.py, track loaded): all of 0x09800000-0x099fffff is power-on DRAM junk (95.6%% 0xff, rest one bit cleared, no pointers or text); 6.4 KB re-read at 16 spots ~20 min later identical: unused by the firmware. NOT zero: mods must zero what they rely on",
+      "unverified": false,
+      "note": "deck survey 2026-11-01: free on hardware (see ram_home_candidate.hardware); RAM is junk, not zero, at power-on"
+    },
+    "caves_in_image": {
+      "r1": "0x0885f820 DROPPED: the black part of an 800x161 background image (2DG source 0x08854920)",
+      "r2": "0x08ec80e0 (0x827b) not used: inside a font/bitmap data area, CPU reads cannot be ruled out",
+      "r3": "0x08e4aef0 (0x7b2c) not used: same"
+    },
+    "startup": {
+      "entry": "0x08000800",
+      "init_hook_pool": "0x080009e0",
+      "init_hook_stock": "0x08c5d808",
+      "data_copy": {
+        "src": "0x08dddcc8",
+        "src_end": "0x08e223f8",
+        "dst": "0x14109fc0"
+      },
+      "bss_dma_fill": {
+        "start": "0x0c000000",
+        "end": "0x0f309604",
+        "words_at": "0x080b0ad8"
+      },
+      "evidence": "tools/shdis.py on work/MAIN_mk1_113.img 0x08000800..: CCR (0xff00001c) = 0x808 at 0x08000816; bsr 0x0800094c = DMAC (0xfe008060) fill of [0x0c000000, 0x0f309604) (bounds read from 0x080b0ad8/dc); .data loop 0x0800085e copies [0x08dddcc8, 0x08e223f8) -> 0x14109fc0 (pools 0x080009d0/d4/d8); then jsr through pool 0x080009e0 = 0x08c5d808 (mov.l @pc,r6 = 0xa4050132; or #2 into that byte; rts), the same pool slot as the 700's empty init hook 0x08CB8714. After the call startup reloads r0-r6 (r7 via sts fpscr) before reading them; r8-r14 untouched by a copier using r0-r4. Cross-check: utility_table.image_table 0x08e097bc - src + dst = 0x14135ab4 = ram_table",
+      "unverified": false,
+      "note": "MK1 has no EMPTY init hook: a boot copier on this pool must tail-jump to init_hook_stock instead of rts"
+    },
+    "utility_table": {
+      "image_table": "0x08e097bc",
+      "ram_table": "0x14135ab4",
+      "count": "0x14135df4",
+      "stock_rows": 16,
+      "rec_size": 52,
+      "pools": [
+        "0x08d790a8",
+        "0x08d793e4",
+        "0x08d79710",
+        "0x08d797a4"
+      ],
+      "cb_nop": "0x08d77932",
+      "cb_draw": "0x08d77936",
+      "cb_begin": "0x08d78654",
+      "cb_sel": "0x08d78798",
+      "cb_q0": "0x08d78d58",
+      "cb_end": "0x08d78d9a",
+      "evidence": "700 CB_DRAW 0x08dd0c6e maps (sig, high) to 0x08d77936; that word occurs once in MK1, in record 0 of a 16-record table at 0x08e097bc whose records match the 700's one for one (same value counts, flags, and callback pattern: every 700 callback word maps to one MK1 word in all 16 records). 700 pool user 0x08dd257e maps (high) to 0x08d79236: identical code, its 'mov.l pool,r1; mul 52' loads 0x08d793e4 = 0x14135ab4. Exactly 4 words = 0x14135ab4 and 4 = 0x14135df4 (=table+0x340, the count, pool pairs adjacent as on the 700)."
+    },
+    "utility_module": {
+      "addr": "0x09804000",
+      "end_max": "0x09806000",
+      "evidence": "gap inside ram_home_candidate between the RGB build's blobs (dcave2 ends 0x098028b8, copy5 0x098029f8; cw.bin starts 0x09808000), work/rgb/build/install.json",
+      "hardware": "deck 2026-11-01 read-only survey (mk1/deck_survey.py, track loaded): all of 0x09800000-0x099fffff is power-on DRAM junk (95.6%% 0xff, rest one bit cleared, no pointers or text); 6.4 KB re-read at 16 spots ~20 min later identical: unused by the firmware. NOT zero: mods must zero what they rely on",
+      "unverified": false,
+      "note": "deck survey 2026-11-01: free on hardware (see ram_home_candidate.hardware); RAM is junk, not zero, at power-on"
+    },
+    "screen_mode_word": {
+      "addr": "0x0e437288",
+      "values": {
+        "main": 1,
+        "perform": 7
+      },
+      "evidence": "700 0x0ba371d4 -> MK1 0x0e437288 (52/52 literal votes, coverage_perform_pads.md); sampled 2026-11-01 in qemu: 1 in state 'main', 7 in state 'perform' (work/bjswipe/mode_*.bin)"
+    },
+    "touch_hook": {
+      "slot": "0x08cf94f4",
+      "stock": "0x08d76ce8",
+      "args": "r4 down (1 while pressed), r5 x, r6 y (screen px), r7 flags; uses only r4-r7",
+      "evidence": "traced_map.json touch_hook_slot + hit_tester (slot redirect test; FWTRACE r4/r5 = 1/154 for a tap at (154,175)); entry disassembly: saves r4-r7 into r14/r13/r12, no stack args",
+      "jump_timing": "stock fires the beat-jump handler on PRESS: FWTRACE 2026-11-01, handler call 1 frame after touch-down, 200-frame hold, no second call (work/logs/bjswipe_trace.log)"
+    },
+    "bj_pad_rects": {
+      "y": [
+        145,
+        206
+      ],
+      "x": {
+        "1": [
+          116,
+          193
+        ],
+        "2": [
+          194,
+          271
+        ],
+        "3": [
+          288,
+          365
+        ],
+        "4": [
+          366,
+          443
+        ],
+        "5": [
+          460,
+          537
+        ],
+        "6": [
+          538,
+          615
+        ]
+      },
+      "evidence": "PERFORM screenshot work/bjswipe/perform.png (pad art edges); pad centres = bj_pads_touch, which FWTRACE tied to codes 1..6",
+      "unverified": true,
+      "note": "y units of r6 assumed = screen px (r5 is); checked by the module's diagnostics in the qemu test"
+    },
+    "bjswipe_module": {
+      "addr": "0x09806000",
+      "end_max": "0x09808000",
+      "evidence": "rest of the gap after utility_module (ends 0x098044dc) before the RGB cw.bin at 0x09808000",
+      "unverified": false,
+      "note": "deck survey 2026-11-01: free on hardware (see ram_home_candidate.hardware); RAM is junk, not zero, at power-on"
+    },
+    "bjswipe_labels": {
+      "addr": "0x09880000",
+      "end_max": "0x098c0000",
+      "evidence": "inside ram_home_candidate, clear of the RGB build (SNAP slots end 0x09854000; SLOT7 word at 0x09900000)",
+      "unverified": false,
+      "note": "deck survey 2026-11-01: free on hardware (see ram_home_candidate.hardware); RAM is junk, not zero, at power-on"
+    },
+    "dsp_image": {
+      "sh_addr": "0x0800e770",
+      "len": "0x5f4c0",
+      "ddr": "0xc0000000",
+      "evidence": "same SH address and length as the 700 (len literal 0x5f4c0 at 0x08d1fad4, image pointer 0xa800e770 at 0x08bdcebc); first 32 bytes identical; 84,514 of 97,584 words identical at the same offset"
+    },
+    "keyshift_dsp": {
+      "call_site": "0xc0008d64",
+      "call_word": "0x0027d290",
+      "puller": "0xc001cbf4",
+      "stage_loads": [
+        "0xc001cd40",
+        "0xc001cd98",
+        "0xc001ce34",
+        "0xc001ce48"
+      ],
+      "stage_load_words": [
+        "0x3356b828",
+        "0x0308c168",
+        "0x01d6b828",
+        "0x0188c168"
+      ],
+      "advance": "0xc00056d0",
+      "b14": "0x11806900",
+      "stage_rec": "0x1182ad58",
+      "stage": "0x1182ad70",
+      "mailbox_key": "0x11837bd8",
+      "evidence": "every word upstream ks.c/ksh.c checks or patches is identical in the MK1 DSP image (call word, 4 staging loads, puller, advance); 0x8c00-0x8e00 126/128 and 0x1cb00-0x1cf00 254/256 words identical (the 4 differences are call displacements); the mvk/mvkh pairs building 0x11806900 (1), 0x1182ad58 (9) and 0x1182ad70 (6) sit at the same offsets in both images",
+      "unverified": true,
+      "note": "static match only; landing padding 0xc005f4c0.. and the mailbox path not yet checked at runtime"
+    },
+    "deck_grid": {
+      "valid": "0x0e43c10c",
+      "count": "0x0e43c110",
+      "entries": "0x0e43c114",
+      "entry": "8 B LE {u32 ms, u32 beat-in-bar 1..4}",
+      "max_count": 23999,
+      "evidence": "The deck's own copy of the loaded track's beat grid, after track_len_word (0x0e43c104). Firmware 0x08d5b7a0: [0x0e43c104] = track len; source grid r12 (16-B entries {u16 bib, .., u32 ms @+4}), n = [r12+4] refused if >= (94<<8)-64 = 24000; writes [0x0e43c10c] = 1, [0x0e43c110] = n, then per beat {ms, bib} from 0x0e43c114 (pool 0x08d5b92c). qemu 2026-11-06: USB load (state perform) and LINK load (deck B, track from deck A's USB, mk1/emu_link.py) both: 13520, 0, 1, 179, then (998,1) (1497,2) (1996,3) (2496,4) (2995,1). On the LINK load the USB slot's ANLZ ctx holds no PQTZ (ctx+0xd7c all zero): why the phase meter's own row stayed empty on LINK loads (user, deck, 2026-11-06)",
+      "unverified": false
+    },
+    "stick_settings": {
+      "file": "MODSCFG.BIN",
+      "state": "0x099effd0",
+      "state_len": 32,
+      "wave_word": "0x098007f0",
+      "pm_mode": "from the stick's pm.bin build (snapshot bundle phasemeter.pm_mode)",
+      "format": "20 B LE {'MCFG', 1, wave 0..2 (BLUE/RGB/3-BAND), pm 0..1, magic^ver^wave^pm^0x5A5A5A5A}",
+      "evidence": "state inside loader2's state page 0x099eff00..0x099f0000 (zeroed by the bootstrap, next to ext2 drive_word 0x099effc0); wave word = snapshot bundle rgb.mode addr (UTILITY WAVEFORM COLOR row writes it); write API = file_api fopen_w 'w' / fwrite_c / fclose_c as the firmware's own USB-shell screen dump (0x08acf9e4)",
+      "unverified": true
+    },
+    "track_len_word": {
+      "addr": "0x0e43c104",
+      "evidence": "700 0x0ba3c050 (ksh.c TRACK_LEN, 'no track loaded' gate): in the centre painter (700 0x08dc39b6 / MK1 0x08d6a6ea) the pc-loads with matching neighbour literals load 0x0e43c104 (5 sites); same distance 0x384 from the preview pointer on both (700 0x0ba3bccc, MK1 0x0e43bd80)",
+      "hardware": "deck 2026-11-01 (read-only, deck_read.py, rekordbox track playing): = 48064 (0xbbc0)"
+    },
+    "key_word": {
+      "addr": "0x0c724dd8",
+      "store_site": "0x08cdd630",
+      "store_word": "0x1c15",
+      "nop": "0x0009",
+      "evidence": "700 store 0x08d36b3a 'mov.l r1,@(20,r12)' (perform_pads RT_NOPSITE): the 40- and 56-byte masked windows around it occur once in MK1, at 0x08cdd630 (identical instructions incl. 0x1c15); its r12 pool 0x08cdd6f8 = 0x0c724dc4 (700 0x09d24dc4), +20 = 0x0c724dd8 (700 0x09d24dd8)",
+      "hardware": "deck 2026-11-01 (read-only, deck_read.py, rekordbox track playing): = 0x00100000"
+    },
+    "host_port": {
+      "hpia": "0xb8040000",
+      "hpid": "0xb80c0000",
+      "evidence": "the same two literals as the 700's (ksh.c HPIA_P2/HPID_P2) at 0x0809b32c/0x0809b37c and 0x08dee7d4/0x08dee824 (700 0x0809b380/0x0809b3d0, 0x08e484b8/0x08e48508)"
+    },
+    "flush_hook": {
+      "slot": "0x08c37f14",
+      "stock": "0x08e23578",
+      "evidence": "coverage_perform_pads.md: slot #8 of 0x08c37e3a (sig match of 700 0x08c92d46), stock value maps 0x08e7d278 -> 0x08e23578 (sig, high)",
+      "unverified": true,
+      "note": "not yet exercised on MK1"
+    },
+    "master_tempo_word": {
+      "addr": "0x0e0c419c",
+      "size": 1,
+      "values": {
+        "off": 0,
+        "on": 1
+      },
+      "evidence": "700 MTW 0x0b6c4308 (1/1 matched loader votes, coverage_perform_pads.md); qemu 2026-11-01 state 'perform': byte reads 0 -> 1 -> 0 as panel 0x15/0x10 (the 700's MasterTempo key) is pressed twice (work/keyshift/mt*.bin)"
+    },
+    "keyshift_module": {
+      "addr": "0x0980a000",
+      "end_max": "0x09810000",
+      "evidence": "gap in ram_home_candidate between the RGB cw.bin (0x09808000, ends < 0x09808600) and SLOT4 (0x09810000)",
+      "unverified": false,
+      "note": "deck survey 2026-11-01: free on hardware (see ram_home_candidate.hardware); RAM is junk, not zero, at power-on"
+    },
+    "play_position": {
+      "addr": "0x0eae6dbc",
+      "units": "1/150 s",
+      "struct": "0x0eae6db8 (+4 position, +8 track length; same layout as the 700's 0x0c0e6d14)",
+      "writer": "0x08d70904 'mov.l r7,@(4,r5)' in fn 0x08d70456; copy 0x0eae6c28 written right after by 0x08dc3050",
+      "evidence": "(1) qemu MK1 state 'perform': = elapsed time from REMAIN, freezes on pause, +4 = track length; CDJ_MWATCH: written at 0x08d70904 (r5 = 0x0eae6db8), 0x0eae6c28 is a copy made at 0x08dc3050. (2) cdj-nxs2 runs the 700 like the real deck here: on a fresh 700 boot playing the same track, 0x0c0e6d18 advances 2126 -> 2318 with REMAIN (14.0 -> 15.3 s) and 0x0c0e6d1c = 13500 = length -- exactly upstream's real-deck reading (pm.c, tools/clock_hunt.py), which upstream's own emulator got wrong. (3) The 700's writer (MWATCH: pc 0x08dc9c4c 'mov.l r12,@(4,r5)', pr = pc - 0x4e) and MK1's (pc 0x08d70904, pr = pc - 0x4e) are the same function: 85.7% register-neutral aligned similarity over 1222 B, and the alignment pairs exactly these two stores; the five-field store sequence is identical except r7/r12 swap. Logs: work/logs/pos_700watch.log, work/emu/*.qemu.log",
+      "unverified": false,
+      "hardware": "deck 2026-11-01 (read-only, deck_read.py, rekordbox track playing): 4058 -> 4211 in 1.1 s (~150/s), length 48044; struct 0x0eae6db8 = {0, 17222, 48044, ...}"
+    },
+    "beat_grid": {
+      "ctx_off": "0xd7c",
+      "tag": "0x5a545150",
+      "entry": "8 B LE {u16 beat-in-bar, u16 bpm*100, u32 ms}",
+      "count_off": "0x14",
+      "ptr_off": "0x18",
+      "evidence": "qemu state 'perform': ctx [0x0c226be4] = 0x0f519f58; 'PQTZ' only at ctx+0xd7c (the 700's offset); +0x10 = 8, count 179, ptr 0x0f77aee0; entries beat 1..4, ms rising, 499 ms apart (120.19 BPM, test track 120.2)"
+    },
+    "preview_word": {
+      "addr": "0x0e43bd80",
+      "evidence": "= overview_painter.preview (verified with the RGB build)",
+      "hardware": "deck 2026-11-01 (read-only, deck_read.py, rekordbox track playing): = 0x05020502"
+    },
+    "stems_io": {
+      "fread": "0x08c06b60",
+      "fseek": "0x08c07f10",
+      "pos_off": "0x2c",
+      "audio_read_pool": "0x08d06c98",
+      "audio_read_stock": "0x08c06b60",
+      "direct_slot": "0x08d86bb4",
+      "direct_note": "upstream stems_apply.py (2026-10-12): on XDJ-700 hardware the media-server hook alone saw no reads; the direct slot carries the real audio reads, so both are routed to the mixer. qemu MK1: both paths active (with only the pool hooked, 3 of 12 sampled buffers stayed unmixed)",
+      "evidence": "700 FREAD 0x08C61A6C is not in the function map; MK1 0x08c06b60 has all 40 first instructions identical (masked pc-relative/branch displacements) and sits 0x13B0 below fseek exactly as on the 700; FSEEK3 0x08C62E1C -> 0x08c07f10 (function map, sig, high). Both images have exactly 5 pool words pointing at fread, in mapped functions in the same order: 700 hook pool 0x08D5FFA8 (fn 0x08d5eebe, sig/high) -> MK1 0x08d06c98 (fn 0x08d05bce); DIRECT 0x08DDFFD4 (fn+0x9a) -> 0x08d86bb4 (fn 0x08d86b1a + 0x9a). pos_off 0x2c: fread code identical incl. displacements; to be confirmed by the qemu test",
+      "unverified": true
+    },
+    "stems_module": {
+      "addr": "0x09854000",
+      "end_max": "0x09880000",
+      "pmask": "0x0987fff0",
+      "zero_words": "0x0987fff4..0x09880000 (V_VSEL/V_VFP/V_VTBL: the 700's version switcher, absent on MK1; zero = never matches a file)",
+      "evidence": "moved 2026-11-06 from 0x09850000: RGB SLOT5 (PWV5 snapshot) is 0x09814000 + SLOT5_MAX 0x40000 = 0x09854000 (work/rgb/build/install.json), so a PWV5 > 0x3C000 B (track > ~13.6 min) would have overwritten the first 16 KB of the mixer. Module + bss end ~0x09861730 (55 KB), PMASK 0x0987fff0 and zero words unchanged, bjswipe_labels from 0x09880000. Deck-surveyed free range (ram_home_candidate.hardware).",
+      "unverified": false
+    },
+    "ms_clock": {
+      "addr": "0x0dae5cdc",
+      "units": "ms since boot (u32)",
+      "evidence": "kernel code 0x08da0000-0x08dac000 references page 0x0dae5000 426 times (its globals); deck 2026-11-01 read-only, 3 reads ~13 s apart: 1279814 -> 1293041 -> 1306269 = 1000.1/s both intervals (~21 min after power-on); other ~1000/s words in 0x0dae6xxx lag it (task timestamps). Found via TMU0 setup 0x08cc031a (TCR0 shadow 0x0dbf3f3c) -> kernel start 0x08da4f62",
+      "unverified": false
+    },
+    "link_master": {
+      "master_number": "0x0d2be2d4",
+      "slot_table": "0x0d2d011c",
+      "slot_stride": "0x11c",
+      "slot_status_off": "0x80",
+      "beat_in_bar_base": "0x0d2be62c",
+      "max_player": 6,
+      "slots_evidence": "Per-player tables indexed by player number n. Firmware 0x08c9c9da (r4 = n): beat byte [0x0d2be62c + n] (pool 0x08c9cc58), slot 0x0d2d011c (pool 0x08c9cc5c) + n*0x11c (mov #71; shll2; mul.l), compared with [0x0d2be2d4] (pool 0x08c9cc60); beat-packet handler 0x08ce67da stores packet byte 0x5c at [0x0d2be62c + packet byte 0x5f]. A slot is a copy of the 0x11c-byte status packet (name at +0x0b, player at +0x24); +0x80 = the 'status' fields below. qemu 2026-11-06 (mk1/link_slots_emu.py, stock MK1 + 3 software players 2/3/4 at 121/133/145 BPM): BPM*100 at slot+0x80+0x10 for n = 2, 3, 4 = 0x0d2d03e4 / 0x0d2d0500 / 0x0d2d061c; [0x0d2be2d4] = 3 with player 3 master, 4 after moving the master role to player 4 (flags +9 0xe8 / 0xc8 follow); beat bytes 0x0d2be62e..30 = players 2..4. Hardware 2026-11-01 (other deck = player 3): status 0x0d2d04f0 = slot 3, beat byte 0x0d2be62f = 0x0d2be62c + 3: consistent. max_player 6: slots 5 and 6 are initialised (pitch 0x100000) in qemu; upper bound in firmware not checked",
+      "beat_in_bar": "0x0d2be62f",
+      "status": "0x0d2d04f0",
+      "status_fields": {
+        "pitch_u32": "+0x0c (0x00100000 = 0%)",
+        "bpm_x100_u16": "+0x10",
+        "beat_u32": "+0x20",
+        "cue_countdown_u16": "+0x24",
+        "beat_in_bar_u16": "+0x26",
+        "counter_u32": "+0x48 (~6/s)"
+      },
+      "evidence": "700 link-state area (upstream tools/link_beat_search.py 0x0A8CF000/0x0A8BE000) + 0x29FFFCC: the offset literals of mapped 700/MK1 function pairs agree on (work/map_700_to_mk1.json). Deck 2026-11-01, read-only (mk1/link_scan.py + 10 Hz sampling), this deck stopped (play_state 7), linked master playing at 174 BPM: 0x0d2d0516 cycles 1..4 every 0.345 s (= 174 BPM), 0x0d2d0500 = 17400, 0x0d2d04fc = 0x00100000; 0x0d2be62f cycles 1..4 ~0.1 s EARLIER than the status copy (beat-packet timed), its neighbours static",
+      "unverified": true,
+      "master_flag": "status +0x09 bit 0x20 (also +0x1e = 1)",
+      "note": "2026-11-01 role swap (this deck made master, other deck kept playing at 174 BPM): status +0x09 0xe4 -> 0xc4 and +0x1e 1 -> 0, while BPM/beat/beat-in-bar kept following the OTHER deck: the struct and 0x0d2be62f are the other player's slot, not 'the master'. Tested with 2 decks only; a 3rd player's slot is unknown"
+    },
+    "phasemeter_geometry": {
+      "x0": 260,
+      "x1": 471,
+      "cx": 366,
+      "main_rows_y": [
+        116,
+        158
+      ],
+      "perform_dy": -103,
+      "label": [
+        172,
+        116,
+        86,
+        30
+      ],
+      "evidence": "MK1 screenshots (work/utility/shots/live_start.png main, work/bjswipe/perform.png): stock 4-box meter from x 260, rows inside y 116..158 on main and exactly 103 px higher on PERFORM; white playhead at x 365-367; visibility pixels (200,BY), (476,OY), (476,BY) are background; label area x 164-257 y 116-146 empty on both. Same numbers as upstream pm.c"
+    },
+    "phasemeter_module": {
+      "addr": "0x098c0000",
+      "end_max": "0x098d0000",
+      "evidence": "in ram_home_candidate after bjswipe_labels (ends 0x098b6d80)",
+      "unverified": false,
+      "note": "deck survey 2026-11-01: free on hardware (see ram_home_candidate.hardware); RAM is junk, not zero, at power-on"
+    },
+    "stemsui_layout": {
+      "source": "work/bjswipe/perform.png",
+      "row_y": [
+        145,
+        206
+      ],
+      "pads_from": "bj_pad_rects (codes 1..6 = VOCALS DRUMS BASS OTHER ALL-ON BACK)",
+      "header_rows": [
+        146,
+        163
+      ],
+      "text_band": [
+        164,
+        190
+      ],
+      "baseline": 182,
+      "cap": 11,
+      "pad_ink": [
+        255,
+        255,
+        255
+      ],
+      "muted_ink": [
+        70,
+        84,
+        100
+      ],
+      "label_touch": [
+        10,
+        112,
+        148,
+        204
+      ],
+      "title_x": [
+        14,
+        88
+      ],
+      "title_y": [
+        167,
+        183
+      ],
+      "cap_label": 8,
+      "baseline_label": 178,
+      "label_ink": [
+        106,
+        133,
+        156
+      ],
+      "alert_ink": [
+        226,
+        40,
+        40
+      ],
+      "evidence": "work/bjswipe/perform.png (stock PERFORM, qemu): BEAT JUMP label text rows 171-178 = HOT CUE's 259-266 (ksui_layout) - 88; pad faces = bj_pad_rects; tab arrows in rows 146-163, digits in 164-190 (bjlabels band rows 20..45 of the sprite at y 144)",
+      "unverified": false
+    },
+    "ksui_layout": {
+      "source": "work/bjswipe/perform.png",
+      "row_y": [
+        232,
+        295
+      ],
+      "pads": {
+        "A": [
+          116,
+          214
+        ],
+        "B": [
+          231,
+          329
+        ],
+        "C": [
+          345,
+          443
+        ],
+        "REC": [
+          460,
+          536
+        ],
+        "CALL": [
+          539,
+          616
+        ]
+      },
+      "text_band": [
+        254,
+        274
+      ],
+      "pad_ink": [
+        255,
+        255,
+        255
+      ],
+      "cap_big": 14,
+      "cap_small": 11,
+      "baseline_big": 270,
+      "baseline_small": 268,
+      "label_touch": [
+        10,
+        112,
+        236,
+        292
+      ],
+      "title_x": [
+        14,
+        88
+      ],
+      "title_y": [
+        255,
+        271
+      ],
+      "cap_label": 8,
+      "baseline_label": 266,
+      "label_ink": [
+        106,
+        133,
+        156
+      ],
+      "evidence": "stock PERFORM screenshot (state 'perform', qemu): pad edges along y 263 at 116/214, 231/329, 345/443, 460/536, 539/616 and y 232/295 at x 165; 'A' ink y 257-270 white, REC/CALL ink y 258-268 white, 'HOT CUE' ink x 32-75 y 259-266 colour (106,133,156), connector line x 89-112"
+    },
+    "stemsui_module": {
+      "addr": "0x098e0000",
+      "end_max": "0x098e0800",
+      "img": "0x098e0800",
+      "img_end_max": "0x09900000",
+      "evidence": "deck-surveyed free range (ram_home_candidate.hardware), after ksui_module (end 0x098e0000), before RGB SLOT7 (0x09900000)",
+      "unverified": false
+    },
+    "ksui_module": {
+      "addr": "0x098d0000",
+      "end_max": "0x098e0000",
+      "img": "0x099b0000",
+      "img_end_max": "0x09a00000",
+      "evidence": "in ram_home_candidate: after phasemeter_module; images after RGB's SLOT7 buffer (rgb_detail SLOT7 0x09900000 + SLOT7_MAX 0xB0000 = 0x099b0000; moved 2026-11-01 from 0x09920000, which a long PWV7 track would overwrite); 237,814 B fit below 0x09a00000 = end of the deck-surveyed free range",
+      "unverified": false,
+      "note": "deck survey 2026-11-01: free on hardware (see ram_home_candidate.hardware); RAM is junk, not zero, at power-on"
+    },
+    "file_api": {
+      "fopen_w": "0x08d8611c",
+      "fread_c": "0x08d86876",
+      "fwrite_c": "0x08d86b1a",
+      "fclose_c": "0x08d86572",
+      "sig": "fopen_w(u16 *wide_path, const char *mode, ctx) -> fp|0; fread_c/fwrite_c(buf, size, count, fp, ctx on stack); fclose_c(fp, ctx). ctx = caller-owned status struct (USB shell uses 0xa80b839c, DB mount uses 0xa80b8400).",
+      "ascii_open_wrapper": "0x08b78f00 (strlen 0x08dc4ab0, alloc 0x08bf7e44, ascii->u16 0x08da236e, fopen_w(.., 'r' @0xa80795a8, ctx 0xa80b8400), free 0x08bf7eea)",
+      "evidence": "static 2026-11-05: USB-shell screen dump 0x08acf9e4..0x08acfa58 = fopen_w(wpath,'w',0xa80b839c) -> fwrite_c(0x14600000,1,0xbb800,fp,ctx) -> fclose_c (err string 'USB open err'); fread_c calls the stems fread 0x08c06b60 via pool 0x08d86bb4; 41/24/58 literal refs to open/read/close.",
+      "unverified": true,
+      "hardware": "deck 2026-11-05: pool 0x08b77220 held stock 0x08b78fe6; RAM loader installed over USB-B, stick insert -> status OK, 31 ops, mods working (user)"
+    },
+    "stick_mount_check": {
+      "path_build": "0x08b78fe6",
+      "path_build_pool": "0x08b77220",
+      "path_build_pool_stock": "0x08b78fe6",
+      "caller": "0x08b76fd8 / 0x08b77006 (r4=drive char r13, r5='PIONEER/rekordbox/export.pdb' 0xa8079568) and 0x08b77020 (exportExt.pdb 0xa8079588); then exists-check open 0x08b78f00 / close 0x08b78f86",
+      "sig": "path_build(char drive, const char *name, char *buf) -> 0 (sprintf '%c:/%s', or '%c:/.%s' when drive table 0x0f2d80c0[(drive|0x20)*12] type == 4); -1 if buf==0",
+      "other_pool_ref": "0x08b4cba4 (different function, not hooked)",
+      "evidence": "static 2026-11-05 + qemu cold boot with test stick (CDJ_FWTRACE, work/logs/mounttrace.fw): path_build hit 3x: pr=0x08b77012 r4=0x43 'C' r5=export.pdb, pr=0x08b7702c r4='C' r5=exportExt.pdb, pr=0x08b4cadc r4='C' r5=0xa807779c (DB loader, other pool). Stick drive = 'C' in qemu (deck unverified).",
+      "unverified": true,
+      "hardware": "deck 2026-11-05: pool 0x08b77220 held stock 0x08b78fe6; RAM loader installed over USB-B, stick insert -> status OK, 31 ops, mods working (user)"
+    },
+    "stick_loader": {
+      "addr": "0x099f0000",
+      "end_max": "0x099f0f00",
+      "state": "0x099f0f00",
+      "state_len": "0x100",
+      "stage": "0x099f1000",
+      "stage_end": "0x09a00000",
+      "open_r": "0x08b78f00",
+      "read_db": "0x08b78f74",
+      "close_db": "0x08b78f86",
+      "name_pdb": "0xa8079568",
+      "read_db_note": "0x08b78f74: pushes ctx 0xa80b8400 as 5th arg, jsr fread_c 0x08d86876 (r4..r7 = buf,size,count,fp); no literal refs (bsr-local), static only",
+      "evidence": "free RAM gap 0x099ea0f6-0x09a00000: after ksui_module img (0x099b0000 + 237,814 B = 0x099ea0f6), end of the deck-surveyed free range 0x09a00000. 2026-11-05 first try at 0x09900000 was WRONG (= rgb SLOT7 buffer 0x09900000+0xB0000): the loader's own range check refused MODS.BIN (BADOP on the SLOT7_word ZERO) in qemu, nothing written. Staging 60 KB: enough for rgb+UTILITY+phasemeter (13 KB), not for stems/bjswipe labels.",
+      "unverified": true,
+      "hardware": "deck 2026-11-05: pool 0x08b77220 held stock 0x08b78fe6; RAM loader installed over USB-B, stick insert -> status OK, 31 ops, mods working (user)"
+    },
+    "anlz_ctx_paths": {
+      "ctx": "[0x0c226be4] (anlz_ctx_table)",
+      "audio_path_off": "0x480",
+      "dat_path_off": "0x688",
+      "ext_path_off": "0x1228",
+      "format": "ASCII, NUL-terminated, stick-relative ('/PIONEER/USBANLZ/P040/0003041A/ANLZ0000.EXT'); drive prefix 'C:' added by the open path (path buffer 0x13a35d98 held 'C:/Contents/...wav')",
+      "index_free_slot": "entries after count hold {0xffffffff,0,0,0} (empty); capacity not yet known",
+      "file_io_note": "track/ANLZ file opens go through a media-server task (low-level open 0x08c04260 called only from 0x08d06646 = request dispatcher), not through fopen_w 0x08d8611c",
+      "evidence": "qemu 2026-11-05, 3band_usb.img, track 'BJ Test 120' loaded: ctx 0x0f519f58, idx count 5 (PQT2 PWV5 PWV4 PWV6 PWV7, ptrs 0x0f67b49c..0x0f784884); dumps work/ext2/ctx.bin, path.bin; saved state work/emu/xdj1000/loaded3b.vm",
+      "unverified": false,
+      "index_capacity": 32,
+      "index_capacity_evidence": "init loop 0x08ca9fbc..0x08ca9fc4: 16 iterations x 32 B, stores -1 at entry+0 and entry+16 -> 32 entries of 16 B; MWATCH: entry 31 initialised, entry 64 not"
+    },
+    "ext_parse": {
+      "fn": "0x08cb33e0",
+      "pool": "0x08cae4ac",
+      "pool_stock": "0x08cb33e0",
+      "call_site": "0x08cae2ea (jsr @r12, r12 loaded at 0x08cae2b2)",
+      "sig": "parse(ctx) -> r0 (0 = ok; caller tests r6 = r0); called twice per track load (pr 0x08cae2ee, r4 = ctx, r5 = 0x00040001); the 2nd call adds the .EXT extra sections",
+      "index_add": "0x08cb5bcc(ctx, section) from 0x08cb3f2a; count store at 0x08cb5cee",
+      "evidence": "qemu 2026-11-05/06, 3band_usb.img track load: FWTRACE 0x08cb33e0 x2, 0x08cb5bcc x5; MWATCH count 0x0f51b310 1..5 by 0x08cb5cee (work/logs/parsetrace.fw, idxwatch.mw); only one literal ref to 0x08cb33e0 (pool 0x08cae4ac, in msc_anlz_local_usb.c code)",
+      "unverified": true
+    },
+    "fopen_descriptors": {
+      "table": "0xa80b8374.. (image 0x080b8374, rodata, 20 B entries {u16, u16, s32 timeout ms or -1, 0,0,0})",
+      "default_if_null": "0xa80b8374 {9,0,-1}",
+      "usb_shell": "0xa80b839c {3,2,-1}",
+      "db_mount": "0xa80b8400 {6,4,-1}",
+      "note": "constant descriptors (client id / timeout?), not per-task state; fopen_w(\u2026, ctx=0) uses the default. Which one is safe from the ANLZ loader task: test in qemu.",
+      "unverified": true
+    },
+    "ram_free_2": {
+      "addr": "0x09a00000",
+      "end": "0x09a80000",
+      "hardware": "deck 2026-11-06 00:14, read-only deck_survey.py 09a00000 80000 with loader firmware, stick mods loaded, a track played: 512 KB, 100% non-zero, 94.1% 0xFF, no zero bytes = same power-on junk signature as ram_home (95.6% 0xFF): untouched",
+      "use": "loader2 stage (MODS2.BIN) at mount, then the 3-band .2EX buffer (PWV6/PWV7) at track load",
+      "unverified": false
+    },
+    "ext2_module": {
+      "addr": "0x099ec000",
+      "end_max": "0x099ee000",
+      "buf": "0x09a00000",
+      "buf_end": "0x09a80000",
+      "drive_word": "0x099effc0",
+      "drive_word_format": "0x44525600 | drive char (written by loader2), else 'C'",
+      "evidence": "gap 0x099ea0f6-0x099f0000 (after ksui img); buffer = ram_free_2. User's stick (933 tracks, 2026-11-06): every .2EX has PWV6+PWV7, 1107 sections unaligned (copied aligned), worst file+copies 421 KB < 512 KB",
+      "unverified": true
+    },
+    "loader2": {
+      "addr": "0x099ee000",
+      "end_max": "0x099eff00",
+      "state": "0x099eff00",
+      "stage": "0x09a00000",
+      "stage_end": "0x09a80000",
+      "evidence": "gap after ext2_module; stage = ram_free_2 (free again after install, then the ext2 buffer)",
+      "unverified": true
+    }
+  }
+}

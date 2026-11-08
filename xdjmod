@@ -1,0 +1,256 @@
+#!/usr/bin/env python3
+"""xdjmod -- build XDJ-1000 MK1 (firmware 1.13) mods from your own official firmware file.
+
+  xdjmod setup                         Python venv + SH compiler (once)
+  xdjmod check    --upd XDJ1000.UPD    is this the official v1.13 update file?
+  xdjmod firmware --upd XDJ1000.UPD    build the USB-stick-loader enabler + the stock restore
+  xdjmod stick    --upd XDJ1000.UPD    build MODS.BIN + MODS2.BIN (the mods, loaded from the stick)
+  xdjmod write    --to /Volumes/STICK  copy MODS.BIN + MODS2.BIN to a rekordbox stick
+  xdjmod deck-status                   read-only check of a deck on USB-B (loader + phase meter)
+
+Run `xdjmod <command> -h` for options. Nothing here flashes a deck: you install
+the built .UPD yourself, the normal way (see docs/FLASHING.md).
+"""
+import argparse
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+SRC = os.path.join(HERE, "src")
+WORK = os.path.join(SRC, "work")
+VENV = os.path.join(HERE, ".venv")
+VPY = os.path.join(VENV, "bin", "python")
+GCC = os.path.join(WORK, "sh-tools", "bin", "sh-elf-gcc")
+MODEL = json.load(open(os.path.join(SRC, "mk1", "models", "xdj1000_113.json")))
+UPD_SHA = MODEL["upd_sha256"]
+
+# known-good outputs (built and tested by the authors from the official v1.13 file)
+KNOWN = {
+    "XDJ1000_version_tag_loader_v1.15.UPD": "9bc1f58eb522c700ceb948e4e5c0120a0f7cd12b9e59a6d9da6b4df525eefdcb",
+    "XDJ1000_restore_1.16.UPD": "7c8419b4f673bfb0f90cbdc83a75f814ebd21ee90dfb4a61778edc1b01928e2e",
+    ("MODS.BIN", "rgb", True): "52e09b740fdbd2f6191c3d071abec075f6a0f731cb304006e8ae89cec22cfc88",
+    ("MODS2.BIN", "rgb", True): "4249488d057710954e039575b7383f5a5caf799d053f11322fc242679f946e38",
+    ("MODS.BIN", "rgb", False): "52e09b740fdbd2f6191c3d071abec075f6a0f731cb304006e8ae89cec22cfc88",
+    ("MODS2.BIN", "rgb", False): "599f5b7bb107accbe4f4b66db8dbe4b0a28c42e65363400f721b6bc04bbd311a",
+}
+
+
+def sha(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for b in iter(lambda: f.read(1 << 20), b""):
+            h.update(b)
+    return h.hexdigest()
+
+
+def die(msg):
+    print("xdjmod: " + msg, file=sys.stderr)
+    sys.exit(1)
+
+
+def need_setup():
+    if not os.path.exists(VPY):
+        die("run `./xdjmod setup` first (no Python venv)")
+    if not os.path.exists(GCC):
+        die("run `./xdjmod setup` first (no SH compiler at src/work/sh-tools)")
+
+
+def check_upd(path):
+    if not path or not os.path.isfile(path):
+        die("--upd: no such file: %r" % path)
+    got = sha(path)
+    if got != UPD_SHA:
+        die("%s is not the official XDJ-1000 v1.13 update (sha256 %s, want %s). Download\n"
+            "the official XDJ-1000 v1.13 firmware from Pioneer DJ / AlphaTheta." % (path, got, UPD_SHA))
+    return os.path.abspath(path)
+
+
+def run(args, env=None, quiet=True):
+    """a build script in src/, with the venv's Python"""
+    e = dict(os.environ, **(env or {}))
+    r = subprocess.run([VPY] + args, cwd=SRC, env=e, capture_output=quiet, text=True)
+    if r.returncode != 0:
+        if quiet:
+            sys.stderr.write((r.stdout or "")[-3000:] + (r.stderr or "")[-3000:])
+        die("step failed: %s" % " ".join(args))
+    return r.stdout or ""
+
+
+def unpack(upd):
+    img = os.path.join(WORK, "MAIN_mk1_113.img")
+    if os.path.exists(img) and sha(img) == MODEL["image_sha256"]:
+        return
+    os.makedirs(WORK, exist_ok=True)
+    print("unpacking MAIN from the update file ...", flush=True)
+    run(["mk1/unpack_mk1.py", upd, img])
+    if sha(img) != MODEL["image_sha256"]:
+        die("unpacked image does not match the verified v1.13 image")
+
+
+def report(path, key):
+    got = sha(path)
+    want = KNOWN.get(key)
+    tag = "matches the tested build" if got == want else ("NOT the tested build" if want else "no reference")
+    print("  %-40s %s  (%s)" % (os.path.basename(path), got[:16], tag))
+    return got == want or not want
+
+
+# ---------------------------------------------------------------- commands
+def cmd_setup(a):
+    if not os.path.exists(VPY):
+        print("creating .venv ...", flush=True)
+        subprocess.run([sys.executable, "-m", "venv", VENV], check=True)
+    subprocess.run([VPY, "-m", "pip", "install", "-q", "-r", os.path.join(HERE, "requirements.txt")], check=True)
+    print("Python packages OK")
+    if a.toolchain:
+        tc = os.path.abspath(a.toolchain)
+        if not os.path.exists(os.path.join(tc, "bin", "sh-elf-gcc")):
+            die("--toolchain %s has no bin/sh-elf-gcc" % tc)
+        os.makedirs(WORK, exist_ok=True)
+        dst = os.path.join(WORK, "sh-tools")
+        if os.path.lexists(dst):
+            os.remove(dst) if os.path.islink(dst) else die("%s exists; remove it first" % dst)
+        os.symlink(tc, dst)
+    if not os.path.exists(GCC):
+        print("building the SH compiler (binutils 2.43.1 + gcc 14.2.0, about 15-30 min) ...\n"
+              "  needs: Xcode command line tools, Homebrew `brew install gmp mpfr libmpc isl`", flush=True)
+        r = subprocess.run(["bash", os.path.join(SRC, "tools", "build_sh_gcc.sh")], cwd=SRC)
+        if r.returncode != 0 or not os.path.exists(GCC):
+            die("compiler build failed (see above)")
+    print(subprocess.run([GCC, "--version"], capture_output=True, text=True).stdout.splitlines()[0])
+    print("setup OK")
+
+
+def cmd_check(a):
+    p = check_upd(a.upd)
+    print("OK: %s is the official XDJ-1000 v1.13 update (sha256 %s...)" % (p, UPD_SHA[:16]))
+
+
+def cmd_firmware(a):
+    need_setup()
+    upd = check_upd(a.upd)
+    unpack(upd)
+    env = dict(XDJMOD_UPD=upd)
+    out = os.path.abspath(a.out)
+    os.makedirs(out, exist_ok=True)
+    print("building the USB-stick-loader enabler (banner %s) ..." % a.banner, flush=True)
+    run(["mk1/build_mk1.py", "version_tag", "loader", "--banner", a.banner], env)
+    f1 = os.path.join(WORK, "mk1build", "XDJ1000_version_tag_loader_v%s.UPD" % a.banner)
+    print("building the stock restore (banner %s) ..." % a.restore_banner, flush=True)
+    run(["mk1/restore_mk1.py", a.restore_banner], env)
+    f2 = os.path.join(WORK, "mk1restore", "XDJ1000_restore_%s.UPD" % a.restore_banner)
+    ok = True
+    for f in (f1, f2):
+        shutil.copy(f, out)
+        ok &= report(os.path.join(out, os.path.basename(f)), os.path.basename(f))
+    print("written to %s" % out)
+    print("next: docs/FLASHING.md (install the enabler like any update; keep the restore file)")
+    if not ok:
+        print("WARNING: an output differs from the tested build. Do not flash it; open an issue.")
+        sys.exit(2)
+
+
+def cmd_stick(a):
+    need_setup()
+    upd = check_upd(a.upd)
+    unpack(upd)
+    stems = bool(a.stems_screenshot)
+    if stems:
+        dst = os.path.join(WORK, "bjswipe", "perform.png")
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.copy(a.stems_screenshot, dst)
+    snap = os.path.join(WORK, "snapshot")
+    env = dict(XDJMOD_UPD=upd, XDJMOD_SNAP=snap, XDJMOD_STEMS="1" if stems else "0")
+    print("building the colour waveform modules ...", flush=True)
+    run(["mk1/rgb_mk1.py", "build"], env)
+    shutil.rmtree(snap, ignore_errors=True)
+    print("building UTILITY rows + phase meter ...", flush=True)
+    run(["mk1/make_snapshot.py", snap], env)
+    print("building the stick files (stems %s, default waveform %s) ..." % ("ON" if stems else "off", a.waveform),
+          flush=True)
+    run(["mk1/mods_all.py", "build", "--mode", a.waveform], env)
+    out = os.path.abspath(a.out)
+    os.makedirs(out, exist_ok=True)
+    ok = True
+    for n in ("MODS.BIN", "MODS2.BIN"):
+        shutil.copy(os.path.join(WORK, "mods_all", n), out)
+        ok &= report(os.path.join(out, n), (n, "rgb" if n == "MODS.BIN" else a.waveform, stems))
+    print("written to %s\nnext: ./xdjmod write --to /Volumes/<STICK>   (docs/STICK.md)" % out)
+    if not ok and a.waveform == "rgb" and not stems:
+        print("WARNING: output differs from the tested build; open an issue before using it.")
+        sys.exit(2)
+
+
+def cmd_write(a):
+    src = os.path.abspath(a.src)
+    files = [os.path.join(src, n) for n in ("MODS.BIN", "MODS2.BIN")]
+    for f in files:
+        if not os.path.isfile(f):
+            die("%s missing: run `./xdjmod stick --upd ...` first" % f)
+    vol = os.path.abspath(a.to)
+    if not os.path.isdir(os.path.join(vol, "PIONEER")):
+        die("%s has no PIONEER folder: not a rekordbox USB stick?" % vol)
+    if not a.yes:
+        r = input("copy MODS.BIN + MODS2.BIN to %s (replacing older copies)? [y/N] " % vol)
+        if r.strip().lower() != "y":
+            die("nothing written")
+    for f in files:
+        shutil.copy(f, vol)
+        print("  %s -> %s" % (os.path.basename(f), vol))
+    if sys.platform == "darwin" and not a.no_eject:
+        subprocess.run(["sync"])
+        subprocess.run(["diskutil", "eject", vol])
+    print("done: power-cycle the deck, insert the stick (no track loaded)")
+
+
+def cmd_deck_status(a):
+    if not os.path.exists(VPY):
+        die("run `./xdjmod setup` first")
+    for what in ("loader-status", "pm-status"):
+        r = subprocess.run([VPY, "mk1/deck_write.py", what], cwd=SRC,
+                           env=dict(os.environ, XDJMOD_SNAP=os.path.join(WORK, "snapshot")))
+        if r.returncode:
+            sys.exit(r.returncode)
+
+
+def main():
+    ap = argparse.ArgumentParser(prog="xdjmod", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sp = ap.add_subparsers(dest="cmd", required=True)
+    p = sp.add_parser("setup", help="Python venv + SH compiler (once)")
+    p.add_argument("--toolchain", help="use an existing sh-elf toolchain prefix (has bin/sh-elf-gcc)")
+    p.set_defaults(f=cmd_setup)
+    p = sp.add_parser("check", help="verify the firmware file")
+    p.add_argument("--upd", required=True, help="official XDJ1000.UPD, v1.13")
+    p.set_defaults(f=cmd_check)
+    p = sp.add_parser("firmware", help="build the USB-stick-loader enabler UPD + the stock restore UPD")
+    p.add_argument("--upd", required=True, help="official XDJ1000.UPD, v1.13")
+    p.add_argument("--out", default=os.path.join(HERE, "out"), help="output folder (default ./out)")
+    p.add_argument("--banner", default="1.15", help="version the enabler shows the updater (default 1.15)")
+    p.add_argument("--restore-banner", default="1.16", help="version of the stock restore (default 1.16)")
+    p.set_defaults(f=cmd_firmware)
+    p = sp.add_parser("stick", help="build MODS.BIN + MODS2.BIN")
+    p.add_argument("--upd", required=True, help="official XDJ1000.UPD, v1.13")
+    p.add_argument("--out", default=os.path.join(HERE, "out", "stick"), help="output folder (default ./out/stick)")
+    p.add_argument("--waveform", choices=("rgb", "3band", "blue"), default="rgb",
+                   help="WAVEFORM COLOR until the stick has saved settings (default rgb)")
+    p.add_argument("--stems-screenshot", metavar="PNG",
+                   help="800x480 screenshot of YOUR deck's stock PERFORM screen: adds the stems mixer + STEMS pads")
+    p.set_defaults(f=cmd_stick)
+    p = sp.add_parser("write", help="copy the stick files to a rekordbox stick")
+    p.add_argument("--to", required=True, help="the stick's mount point, e.g. /Volumes/MYSTICK")
+    p.add_argument("--from", dest="src", default=os.path.join(HERE, "out", "stick"), help="default ./out/stick")
+    p.add_argument("--yes", action="store_true", help="don't ask")
+    p.add_argument("--no-eject", action="store_true")
+    p.set_defaults(f=cmd_write)
+    p = sp.add_parser("deck-status", help="read-only: loader + phase meter state of a deck on USB-B")
+    p.set_defaults(f=cmd_deck_status)
+    a = ap.parse_args()
+    a.f(a)
+
+
+if __name__ == "__main__":
+    main()

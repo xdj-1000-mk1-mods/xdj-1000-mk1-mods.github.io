@@ -1,0 +1,52 @@
+{
+  "note": "Addresses are in the decoded MAIN image (block 1, base 0x08000000). Every entry carries evidence; unverified ones say so.",
+  "model": "XDJ-700",
+  "fw": "1.15",
+  "upd_sha256": "73edec9802da51672257c2599efc04209dc92478fcbaa1a0425b3b122e33f99c",
+  "image_sha256": "1875381b56d065a2b0a97a63b64ead5ce71397c521b7a62713c5bb4a0e055939",
+  "entries": {
+    "version_record": {
+      "addr": "0x08000700",
+      "fields": {
+        "vendor": "0x08000700",
+        "model": "0x08000720",
+        "version": "0x08000740",
+        "date": "0x08000760"
+      },
+      "field_len": 32,
+      "expect": {
+        "version": "1.15",
+        "model": "XDJ-700"
+      },
+      "evidence": "bytes: 'PIONEER DJ' / 'XDJ-700' / '1.15' / '20241002' in 32-byte NUL-padded fields; upstream tools/permanent_build.py VERSION_AT=0x740 edits this field and UTILITY shows it",
+      "unverified": false
+    },
+    "utility_table": {
+      "image_table": "0x08e634b4",
+      "ram_table": "0x0e736410",
+      "count": "0x0e736750",
+      "stock_rows": 16,
+      "rec_size": 52,
+      "pools": [
+        "0x08dd23f4",
+        "0x08dd272c",
+        "0x08dd2a58",
+        "0x08dd2aec"
+      ],
+      "cb_nop": "0x08dd0c6a",
+      "cb_draw": "0x08dd0c6e",
+      "cb_begin": "0x08dd198c",
+      "cb_sel": "0x08dd1ad0",
+      "cb_q0": "0x08dd20a0",
+      "cb_end": "0x08dd20e2",
+      "evidence": "upstream tools/utility.py + tools/utility/ut.c (hardware-tested there). Image table: the 16 52-byte records whose +24..+48 words are these callbacks (CB_DRAW appears once, in record 0); the 4 pools are the only words = ram_table, and 3 of them sit next to count = ram_table+0x340"
+    },
+    "play_position": {
+      "addr": "0x0c0e6d18",
+      "units": "1/150 s",
+      "struct": "0x0c0e6d14 (+4 position, +8 track length)",
+      "writer": "0x08dc9c4c 'mov.l r12,@(4,r5)'",
+      "evidence": "upstream tools/phasemeter/pm.c POSL, read on a real 700 (tools/clock_hunt.py); cdj-nxs2 qemu fresh boot playing 'BJ Test 120': advances with REMAIN, 0x0c0e6d1c = 13500 = 90 s length; CDJ_MWATCH writer pc 0x08dc9c4c (pr 0x08dc9bfe)"
+    }
+  }
+}

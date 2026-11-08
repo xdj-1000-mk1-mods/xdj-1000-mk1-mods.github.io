@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XDJ-1000 MK1 Mods</title>
+<style>
+  :root { --bg: #0b0c0e; --fg: #e8e6e1; --dim: #8a8780; --line: #2a2b2f; --hot: #ff5a1f; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font: 15px/1.5 ui-sans-serif, -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    display: grid; place-items: center;
+  }
+  #drop {
+    width: min(640px, 88vw); min-height: min(360px, 50vw);
+    border: 1.5px dashed var(--line); border-radius: 18px;
+    display: grid; place-items: center; text-align: center; padding: 2rem;
+    cursor: pointer; transition: border-color .15s, background .15s;
+  }
+  #drop.over { border-color: var(--hot); background: #ff5a1f0d; }
+  #drop.busy { cursor: progress; }
+  h1 { font-size: clamp(22px, 3.2vw, 30px); font-weight: 500; letter-spacing: -.01em; margin: 0; }
+  .sub { color: var(--dim); font-size: 13px; margin-top: .6rem; }
+  .bar { height: 2px; background: var(--line); margin: 1.2rem auto 0; width: 60%; overflow: hidden; border-radius: 2px; display: none; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--hot); transition: width .2s; }
+  .err { color: var(--hot); }
+  a.dl {
+    display: block; margin: .5rem auto; padding: .7rem 1rem; max-width: 420px;
+    border: 1px solid var(--line); border-radius: 10px; color: var(--fg); text-decoration: none;
+  }
+  a.dl:hover { border-color: var(--hot); }
+  a.dl small { display: block; color: var(--dim); }
+  .step { margin: 1rem 0 .2rem; color: var(--fg); }
+  .pair { display: flex; gap: .5rem; justify-content: center; max-width: 420px; margin: 0 auto; }
+  .pair a.dl { flex: 1; margin: .5rem 0; }
+  footer { position: fixed; bottom: 14px; width: 100%; text-align: center; color: var(--dim); font-size: 12px; }
+  footer a { color: var(--dim); }
+</style>
+</head>
+<body>
+<div id="drop" tabindex="0" role="button" aria-label="Drop firmware file here, or click to choose it">
+  <div id="msg">
+    <h1>Drop firmware file here</h1>
+    <div class="sub">XDJ1000.UPD · XDJ-1000 MK1 · version 1.13 · stays on your computer</div>
+  </div>
+</div>
+<input id="pick" type="file" accept=".UPD,.upd" hidden>
+<footer>Runs in your browser; nothing is uploaded. · <a id="repo" href="README.md">source &amp; docs</a></footer>
+
+<script type="module">
+const drop = document.getElementById("drop"), msg = document.getElementById("msg"), pick = document.getElementById("pick");
+let busy = false;
+// https://<user>.github.io/<repo>/ -> https://github.com/<user>/<repo>
+//  (a repo named <owner>.github.io is served at the root: repo = the hostname)
+const ghOwner = location.hostname.endsWith(".github.io") ? location.hostname.split(".")[0] : null;
+const ghRepo = ghOwner && (location.pathname.split("/")[1] || location.hostname);
+const gh = ghOwner ? `https://github.com/${ghOwner}/${ghRepo}` : null;
+const doc = (f) => gh ? `${gh}/blob/main/${f}` : f;
+if (gh) document.getElementById("repo").href = gh;
+
+function show(html) { msg.innerHTML = html; }
+function start(file) {
+  if (busy || !file) return;
+  busy = true; drop.classList.add("busy");
+  show(`<h1>Building …</h1><div class="sub" id="log">reading ${file.name}</div><div class="bar" id="bar"><i></i></div>`);
+  const worker = new Worker(new URL("./web/worker.js", import.meta.url), { type: "module" });
+  file.arrayBuffer().then((buf) => worker.postMessage({ file: buf }, [buf]));
+  worker.onmessage = ({ data }) => {
+    if (data.log) document.getElementById("log").textContent = data.log;
+    if (data.progress !== undefined) {
+      const bar = document.getElementById("bar"); bar.style.display = "block";
+      bar.firstElementChild.style.width = (data.progress * 100).toFixed(0) + "%";
+    }
+    if (data.error) { show(`<h1 class="err">${data.error}</h1><div class="sub">Drop another file to try again.</div>`); done(worker); }
+    if (data.done) {
+      const url = (u8) => URL.createObjectURL(new Blob([u8], { type: "application/octet-stream" }));
+      show(`<h1>Ready</h1>
+        <div class="sub step">1 · once per deck: install like an official update</div>
+        <a class="dl" href="${url(data.done.enabler)}" download="XDJ1000_version_tag_loader_v1.15.UPD">XDJ1000_version_tag_loader_v1.15.UPD
+          <small>lets the deck load mods from a USB stick</small></a>
+        <a class="dl" href="${url(data.done.restore)}" download="XDJ1000_restore_1.16.UPD">XDJ1000_restore_1.16.UPD
+          <small>keep this: takes the deck back to stock 1.13</small></a>
+        <div class="sub step">2 · copy both to the root of your rekordbox USB stick</div>
+        <div class="pair">
+          <a class="dl" href="${url(data.done.mods)}" download="MODS.BIN">MODS.BIN<small>loader</small></a>
+          <a class="dl" href="${url(data.done.mods2)}" download="MODS2.BIN">MODS2.BIN<small>the mods</small></a>
+        </div>
+        <div class="sub">All four files match the tested builds byte for byte. Read
+          <a href="${doc("docs/FLASHING.md")}" style="color:inherit">FLASHING.md</a> and
+          <a href="${doc("docs/STICK.md")}" style="color:inherit">STICK.md</a> first.</div>`);
+      done(worker);
+    }
+  };
+}
+function done(worker) { worker.terminate(); busy = false; drop.classList.remove("busy"); }
+
+drop.addEventListener("click", (e) => { if (!busy && !e.target.closest("a")) pick.click(); });
+drop.addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " ") && !busy) pick.click(); });
+pick.addEventListener("change", () => start(pick.files[0]));
+for (const t of ["dragenter", "dragover"]) addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); });
+for (const t of ["dragleave", "drop"]) addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove("over"); });
+addEventListener("drop", (e) => start(e.dataTransfer.files[0]));
+</script>
+</body>
+</html>
