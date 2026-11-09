@@ -35,8 +35,9 @@ Open the project page, **[xdj-1000-mk1-mods.github.io](https://xdj-1000-mk1-mods
 official `XDJ1000.UPD` on it. The page builds everything **inside your browser**,
 uploads nothing, and only offers files that match the tested builds byte for byte:
 
-1. `XDJ1000_version_tag_loader_v1.15.UPD`: install once, like an official update
-   ([docs/FLASHING.md](docs/FLASHING.md)). Keep `XDJ1000_restore_1.16.UPD`, the way back.
+1. `XDJ1000.UPD`: alone in the root of an empty FAT32 stick, keeping exactly that name, install once like
+   an official update ([docs/FLASHING.md](docs/FLASHING.md)). Keep `XDJ1000_restore_1.16.UPD`, the way back
+   (rename it to `XDJ1000.UPD` on its stick).
 2. `MODS.BIN` + `MODS2.BIN`: copy both to the root of your rekordbox stick, power-cycle
    the deck and insert the stick before loading a track ([docs/STICK.md](docs/STICK.md)).
 

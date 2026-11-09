@@ -148,7 +148,7 @@ def cmd_firmware(a):
         shutil.copy(f, out)
         ok &= report(os.path.join(out, os.path.basename(f)), os.path.basename(f))
     print("written to %s" % out)
-    print("next: docs/FLASHING.md (install the enabler like any update; keep the restore file)")
+    print("next: copy the enabler to an empty FAT32 stick, RENAMED to exactly XDJ1000.UPD (docs/FLASHING.md); keep the restore file")
     if not ok:
         print("WARNING: an output differs from the tested build. Do not flash it; open an issue.")
         sys.exit(2)

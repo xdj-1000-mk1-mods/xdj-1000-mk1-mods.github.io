@@ -78,10 +78,10 @@ function start(file) {
       const url = (u8) => URL.createObjectURL(new Blob([u8], { type: "application/octet-stream" }));
       show(`<h1>Ready</h1>
         <div class="sub step">1 · once per deck: install like an official update</div>
-        <a class="dl" href="${url(data.done.enabler)}" download="XDJ1000_version_tag_loader_v1.15.UPD">XDJ1000_version_tag_loader_v1.15.UPD
-          <small>lets the deck load mods from a USB stick</small></a>
+        <a class="dl" href="${url(data.done.enabler)}" download="XDJ1000.UPD">XDJ1000.UPD (mod enabler)
+          <small>put alone in the root of an empty FAT32 stick · keep the name exactly XDJ1000.UPD</small></a>
         <a class="dl" href="${url(data.done.restore)}" download="XDJ1000_restore_1.16.UPD">XDJ1000_restore_1.16.UPD
-          <small>keep this: takes the deck back to stock 1.13</small></a>
+          <small>keep this: back to stock 1.13 · rename to XDJ1000.UPD on its stick when you need it</small></a>
         <div class="sub step">2 · copy both to the root of your rekordbox USB stick</div>
         <div class="pair">
           <a class="dl" href="${url(data.done.mods)}" download="MODS.BIN">MODS.BIN<small>loader</small></a>

@@ -5,7 +5,7 @@ Drop your `XDJ1000.UPD` on the project's web page, which builds in your browser 
 
 | File | What it is |
 |---|---|
-| `XDJ1000_version_tag_loader_v1.15.UPD` | the **enabler**: stock 1.13 plus the stick loader |
+| `XDJ1000.UPD` (`XDJ1000_version_tag_loader_v1.15.UPD` from `xdjmod`) | the **enabler**: stock 1.13 plus the stick loader |
 | `XDJ1000_restore_1.16.UPD` | the **way back**: Pioneer's own 1.13, byte for byte, with only its version banner raised |
 
 Both refuse any input file except the official XDJ-1000 v1.13 update (SHA-256
@@ -40,8 +40,14 @@ already loaded), the loader writes nothing. Details:
 
 ## Installing it
 
-Install it exactly like an official firmware update. Put the `.UPD` file in
-the root of a FAT32 USB stick with nothing else on it, then follow Pioneer
+**The file on the stick must be named exactly `XDJ1000.UPD`.** The deck's updater
+looks for that name; with any other name it can't find the file and shows
+"Connect USB storage device into top USB port." The web page already saves the
+enabler under that name. `xdjmod` output and the restore file must be renamed.
+You don't need `xdjmod` if you used the web page.
+
+Install it exactly like an official firmware update. Put `XDJ1000.UPD` in
+the root of a FAT32 USB stick with nothing else on it, use the deck's top USB port, then follow Pioneer
 DJ's firmware update instructions for the XDJ-1000. Don't switch the deck
 off while it updates.
 
@@ -50,7 +56,7 @@ stick with `MODS.BIN` ([STICK.md](STICK.md)).
 
 ## Going back to stock
 
-Install `XDJ1000_restore_1.16.UPD` the same way. This is Pioneer's 1.13 with
+Rename `XDJ1000_restore_1.16.UPD` to `XDJ1000.UPD` and install it the same way. This is Pioneer's 1.13 with
 only the version banner raised (3 bytes plus the checksum differ), because the
 updater skips files that aren't newer. Afterwards the deck runs plain stock
 1.13 and reports 1.13.
