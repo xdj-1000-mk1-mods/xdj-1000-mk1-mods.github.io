@@ -33,9 +33,9 @@ KNOWN = {
     "XDJ1000_version_tag_loader_v1.15.UPD": "9bc1f58eb522c700ceb948e4e5c0120a0f7cd12b9e59a6d9da6b4df525eefdcb",
     "XDJ1000_restore_1.16.UPD": "7c8419b4f673bfb0f90cbdc83a75f814ebd21ee90dfb4a61778edc1b01928e2e",
     ("MODS.BIN", "rgb", True): "52e09b740fdbd2f6191c3d071abec075f6a0f731cb304006e8ae89cec22cfc88",
-    ("MODS2.BIN", "rgb", True): "4249488d057710954e039575b7383f5a5caf799d053f11322fc242679f946e38",
+    ("MODS2.BIN", "rgb", True): "efe58fc78834fdbb4023de80dc0954e079546b9b8def619597df9f9ef4f75fd6",
     ("MODS.BIN", "rgb", False): "52e09b740fdbd2f6191c3d071abec075f6a0f731cb304006e8ae89cec22cfc88",
-    ("MODS2.BIN", "rgb", False): "599f5b7bb107accbe4f4b66db8dbe4b0a28c42e65363400f721b6bc04bbd311a",
+    ("MODS2.BIN", "rgb", False): "2e17d0339193e869298ef599be2b7a29e8440ca591ab75bea9b15442f1910b1c",
 }
 
 

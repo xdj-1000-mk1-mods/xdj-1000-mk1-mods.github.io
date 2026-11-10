@@ -35,6 +35,7 @@ Run the tests from `src/`, with the repo's Python (`../.venv/bin/python`).
 | `mk1/phasemeter_mk1.py emu` | Phase meter on main and PERFORM, compared against the expected drawing; BROWSE; ON/OFF |
 | `mk1/late_grid_emu.py` | The beat grid arrives after the track does (as on LINK loads) and is still picked up |
 | `mk1/link_load_emu.py` | Two linked emulated decks: deck B loads from deck A's USB over LINK, and its meter finds the grid |
+| `mk1/link_rgb_emu.py [MODS2.BIN]` | Two linked decks with a 3-track test stick (cdj-nxs2 `make_test_stick.py`): own-stick load = colour; a different track over LINK = no colour (it used to show the previous track's colours); own stick again = colour |
 | `mk1/settings_emu.py` | Writable stick: `MODSCFG.BIN` is written once after a change. Checks the bytes from the Mac, `fsck_msdos` stays clean, and the settings return after a reboot |
 | `mk1/loader_mk1.py emu ok\|refuse\|badcrc\|nofile` | loader1 against good, refused (track loaded), corrupt and missing files |
 | `mk1/stems_mk1.py emu` | stems mixer output against reference mixes |

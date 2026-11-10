@@ -47,6 +47,7 @@ one, are applied when you insert it.
 | Still nothing | `./xdjmod deck-status` over USB-B: the `loader status` line says why (`NOFILE`, `BADCRC`, `NOTSTOCK` = a track was loaded / mods already in, ...) |
 | 3-BAND looks like RGB | that track has no `ANLZ0000.2EX` 3-band data: re-analyse it in rekordbox 6/7 and export again |
 | Phase meter blue row has no ticks | the track has no beat grid; `deck-status` prints `pm_n` (beats found) and the deck's grid table |
+| Blue waveform on a track loaded over LINK | expected: colour only comes from this deck's own stick ([MODS.md](MODS.md#colour-waveforms)) |
 | Orange row mirrors your own deck | this deck is tempo master, which is how it should behave |
 
 If you open an issue, include the `deck-status` output.

@@ -72,6 +72,75 @@ def load_upstream():
     return ro, rd
 
 
+LINK_GUARD = r"""
+/* MK1 port addition (2026-11-10, user reports): the colour snapshots come from
+ * the USB slot's ANLZ context, which a track loaded over Pro DJ Link never
+ * fills: it still holds the last track loaded from this deck's own stick, and
+ * that track's colour waveform was shown for the LINK track. Guard: the deck's
+ * own beat-grid table (models deck_grid, filled for USB and LINK loads) must
+ * match the context's PQTZ (models beat_grid). If not, the colour slots are
+ * emptied (stock blue waveform). Re-checked only when the deck side changes
+ * (new track: snapshot hash; grid landed: table signature), never because the
+ * context changed (another deck loading from this deck's stick). If the
+ * colour was emptied and the track then matches (a local load whose grid
+ * landed late), the overview snapshot is forced to run again. */
+static u32 last_g, emptied;
+u32 cw_guard_same, cw_guard_empty;                       /* test probes */
+
+static u32 dg_sig(void)
+{
+    return (R32(DG_VALID) * 0x9E3779B1u) ^ (R32(DG_COUNT) * 0x85EBCA77u)
+        ^ (R32(DG_ENTRIES) * 0xC2B2AE3Du) ^ R32(DG_ENTRIES + 4);
+}
+
+static int same_track(void)
+{
+    u32 ctx = R32(CTX_TAB);
+    if (!ok_ptr(ctx, PQTZ_OFF + 0x1C) || R32(DG_VALID) != 1u) return 0;
+    u32 q = ctx + PQTZ_OFF, n = R32(DG_COUNT);
+    if (R32(q) != TAG_PQTZ || R32(q + 0x10) != 8u || R32(q + 0x14) != n || n < 2) return 0;
+    u32 ep = R32(q + 0x18), k = n < 8 ? n : 8;
+    if (!ok_ptr(ep, 8 * k)) return 0;
+    for (u32 i = 0; i < k; i++) {
+        const volatile u8 *e = (const volatile u8 *)(ep + 8 * i);
+        u32 ms = e[4] | e[5] << 8 | e[6] << 16 | (u32)e[7] << 24;
+        if (ms != R32(DG_ENTRIES + 8 * i) || e[0] != R32(DG_ENTRIES + 8 * i + 4)) return 0;
+    }
+    return 1;
+}
+
+static void guard(u32 h)
+{
+    if (same_track()) {
+        cw_guard_same++;
+        if (emptied) {                                   /* colour back: rerun the overview snapshot */
+            emptied = 0;
+            R32(SNAP_HASH) = h ^ 0x5A5A5A5Au;
+        }
+        snap7();
+    } else {
+        cw_guard_empty++;
+        emptied = 1;
+        R32(SLOT4) = 0; R32(SLOT5) = 0; R32(SLOT6) = 0; R32(SLOT7) = 0;
+        k7 = 0;
+    }
+}
+"""
+
+
+def link_guard(src):
+    """MK1: show the stock blue waveform, not another track's colours, when the
+    USB context does not hold the loaded track (LINK loads). See LINK_GUARD."""
+    old_head = "static u32 col(u32 idx8, u32 step, u32 white, u32 rmax, u32 pal)\n{"
+    old_snap = ("    u32 h = R32(SNAP_HASH);\n    if (h != last_hash) {                             /* new track loaded */\n"
+                "        last_hash = h;\n        snap7();\n    }\n")
+    new_snap = ("    u32 h = R32(SNAP_HASH), g = dg_sig();\n    if (h != last_hash || g != last_g) {     /* new track / grid landed */\n"
+                "        last_hash = h;\n        last_g = g;\n        guard(h);\n    }\n")
+    src = _sub(src, old_snap, new_snap)
+    i = src.index("u32 cw_col(u32 idx8, u32 step, u32 white)")
+    return src[:i] + LINK_GUARD + "\n" + src[i:]
+
+
 def cw_build_mk1(ro, rd):
     """tools/centre/cw.c compiled for MK1: a generated copy with the two stock
     palette #defines swapped, the same flags as tools/centre/build.sh."""
@@ -80,13 +149,17 @@ def cw_build_mk1(ro, rd):
     src = open(os.path.join(TOOLS, "centre", "cw.c")).read()
     src = _sub(src, "#define PALETTE 0x0E736150u", "#define PALETTE %su" % ce["palette"])
     src = _sub(src, "#define PALETTE2 0x0E735FA8u", "#define PALETTE2 %su" % ce["twin_palette"])
+    src = link_guard(src)
     d = os.path.join(OUT, "centre")
     os.makedirs(d, exist_ok=True)
     open(os.path.join(d, "cw_mk1.c"), "w").write(src)
     SH = os.path.join(ROOT, "work", "sh-tools", "bin")
+    g, bg = E["deck_grid"], E["beat_grid"]
     D = dict(MODE_ADDR=ro.MODE_ADDR, SLOT5=ro.SLOT5, SNAP_HASH=ro.SNAP_HASH, CTX_TAB=ro.CTX_TAB,
              IDX_OFF=ro.IDX_OFF, TAG_PWV5=rd.TAG_PWV5, TAG_PWV7=rd.TAG_PWV7, SLOT7=rd.SLOT7,
-             SLOT7_MAX=rd.SLOT7_MAX)
+             SLOT7_MAX=rd.SLOT7_MAX, SLOT4=ro.SLOT4, SLOT6=ro.SLOT6,
+             PQTZ_OFF=int(bg["ctx_off"], 16), TAG_PQTZ=int(bg["tag"], 16),
+             DG_VALID=int(g["valid"], 16), DG_COUNT=int(g["count"], 16), DG_ENTRIES=int(g["entries"], 16))
     elf = os.path.join(d, "cw.elf")
     subprocess.run([os.path.join(SH, "sh-elf-gcc"), "-m4-nofpu", "-mdiv=call-div1", "-ml", "-O2", "-Wall",
                     "-ffreestanding", "-fno-builtin"] + ["-D%s=%#xu" % kv for kv in D.items()] +

@@ -20,7 +20,7 @@ This repo contains **no firmware**. You bring your own official
 
 | Mod | What it does |
 |---|---|
-| Colour waveforms | RGB overview, centre and PERFORM waveforms. UTILITY > **WAVEFORM COLOR**: BLUE / RGB / 3-BAND |
+| Colour waveforms | RGB overview, centre and PERFORM waveforms. UTILITY > **WAVEFORM COLOR**: BLUE / RGB / 3-BAND. Tracks from this deck's own stick; LINK tracks stay stock blue |
 | 3-BAND from rekordbox | uses the 3-band data rekordbox already writes (`ANLZ0000.2EX`); works with any normal export |
 | Phase meter | blue row = this deck, orange row = the tempo master (any player 1-6). Works for tracks loaded over LINK too. UTILITY > **PHASE METER** ON/OFF |
 | Settings on the stick | WAVEFORM COLOR and PHASE METER are remembered per stick (`MODSCFG.BIN`) |

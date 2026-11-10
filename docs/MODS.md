@@ -9,6 +9,13 @@ The overview, centre and PERFORM waveforms in colour. UTILITY > **WAVEFORM COLOR
 - **3-BAND** = rekordbox's 3-band waveform
 
 The setting is saved on the stick ([STICK.md](STICK.md#settings-file-modscfgbin)).
+
+**Colour needs the track on this deck's own stick.** For a track loaded over
+Pro DJ Link from another player's USB, the MK1 never receives the colour data,
+so it shows the stock blue waveform for that track. Before 2026-11-10 it wrongly
+showed the colours of the last track loaded from its own stick. For colour on
+both decks, put the stick with the mods in the MK1 and let the other player load
+from it over LINK.
 Built from XDJ Mod Studio's XDJ-700 code, with only the MK1 addresses
 swapped in.
 
