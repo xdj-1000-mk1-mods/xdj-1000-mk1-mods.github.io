@@ -1,5 +1,7 @@
 # XDJ-1000 MK1 Mods
 
+**Version 0.1.3**: what changed is in [CHANGELOG.md](CHANGELOG.md).
+
 Mods for the **Pioneer DJ XDJ-1000 (MK1), firmware 1.13**: colour and 3-band
 waveforms, a phase meter that follows the tempo master, beat-jump paging, an
 optional stems mixer, all loaded **from a USB stick**.

@@ -47,7 +47,7 @@
   </div>
 </div>
 <input id="pick" type="file" accept=".UPD,.upd" hidden>
-<footer>Runs in your browser; nothing is uploaded. · <a id="repo" href="README.md">source &amp; docs</a></footer>
+<footer>Runs in your browser; nothing is uploaded. · <a id="repo" href="README.md">source &amp; docs</a> · <a id="ver" href="CHANGELOG.md">v0.1.3</a></footer>
 
 <script type="module">
 const drop = document.getElementById("drop"), msg = document.getElementById("msg"), pick = document.getElementById("pick");
@@ -58,7 +58,7 @@ const ghOwner = location.hostname.endsWith(".github.io") ? location.hostname.spl
 const ghRepo = ghOwner && (location.pathname.split("/")[1] || location.hostname);
 const gh = ghOwner ? `https://github.com/${ghOwner}/${ghRepo}` : null;
 const doc = (f) => gh ? `${gh}/blob/main/${f}` : f;
-if (gh) document.getElementById("repo").href = gh;
+if (gh) { document.getElementById("repo").href = gh; document.getElementById("ver").href = `${gh}/releases`; }
 
 function show(html) { msg.innerHTML = html; }
 function start(file) {
