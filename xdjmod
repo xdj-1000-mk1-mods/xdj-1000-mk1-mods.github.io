@@ -4,8 +4,8 @@
   xdjmod setup                         Python venv + SH compiler (once)
   xdjmod check    --upd XDJ1000.UPD    is this the official v1.13 update file?
   xdjmod firmware --upd XDJ1000.UPD    build the USB-stick-loader enabler + the stock restore
-  xdjmod stick    --upd XDJ1000.UPD    build MODS.BIN + MODS2.BIN (the mods, loaded from the stick)
-  xdjmod write    --to /Volumes/STICK  copy MODS.BIN + MODS2.BIN to a rekordbox stick
+  xdjmod stick    --upd XDJ1000.UPD    build MODSX.BIN (+ MODS.BIN, MODS2.BIN for the first enabler)
+  xdjmod write    --to /Volumes/STICK  copy the mod files to a rekordbox stick
   xdjmod deck-status                   read-only check of a deck on USB-B (loader + phase meter)
 
 Run `xdjmod <command> -h` for options. Nothing here flashes a deck: you install
@@ -30,12 +30,11 @@ UPD_SHA = MODEL["upd_sha256"]
 
 # known-good outputs (built and tested by the authors from the official v1.13 file)
 KNOWN = {
-    "XDJ1000_version_tag_loader_v1.15.UPD": "9bc1f58eb522c700ceb948e4e5c0120a0f7cd12b9e59a6d9da6b4df525eefdcb",
+    "XDJ1000_version_tag_loaderx_v1.17.UPD": "f61d2f5c42005b54e2d2d212928191e934b83645c948d8098ba1a72e30c7d604",
     "XDJ1000_restore_1.16.UPD": "7c8419b4f673bfb0f90cbdc83a75f814ebd21ee90dfb4a61778edc1b01928e2e",
-    ("MODS.BIN", "rgb", True): "52e09b740fdbd2f6191c3d071abec075f6a0f731cb304006e8ae89cec22cfc88",
-    ("MODS2.BIN", "rgb", True): "efe58fc78834fdbb4023de80dc0954e079546b9b8def619597df9f9ef4f75fd6",
     ("MODS.BIN", "rgb", False): "52e09b740fdbd2f6191c3d071abec075f6a0f731cb304006e8ae89cec22cfc88",
-    ("MODS2.BIN", "rgb", False): "2e17d0339193e869298ef599be2b7a29e8440ca591ab75bea9b15442f1910b1c",
+    ("MODS2.BIN", "rgb", False): "8a4d163fe9029466d68bae7dc93a378360d792dc318ae89a34821b8fc7154e1f",
+    ("MODSX.BIN", "rgb", False): "fd14c59c2c64f1c33130c723bacb51d9ccb322d0993a82794b8dec252b3149ff",
 }
 
 
@@ -138,8 +137,8 @@ def cmd_firmware(a):
     out = os.path.abspath(a.out)
     os.makedirs(out, exist_ok=True)
     print("building the USB-stick-loader enabler (banner %s) ..." % a.banner, flush=True)
-    run(["mk1/build_mk1.py", "version_tag", "loader", "--banner", a.banner], env)
-    f1 = os.path.join(WORK, "mk1build", "XDJ1000_version_tag_loader_v%s.UPD" % a.banner)
+    run(["mk1/build_mk1.py", "version_tag", "loaderx", "--banner", a.banner], env)
+    f1 = os.path.join(WORK, "mk1build", "XDJ1000_version_tag_loaderx_v%s.UPD" % a.banner)
     print("building the stock restore (banner %s) ..." % a.restore_banner, flush=True)
     run(["mk1/restore_mk1.py", a.restore_banner], env)
     f2 = os.path.join(WORK, "mk1restore", "XDJ1000_restore_%s.UPD" % a.restore_banner)
@@ -173,13 +172,16 @@ def cmd_stick(a):
     print("building the stick files (stems %s, default waveform %s) ..." % ("ON" if stems else "off", a.waveform),
           flush=True)
     run(["mk1/mods_all.py", "build", "--mode", a.waveform], env)
+    run(["mk1/mods_all.py", "buildx", "--mode", a.waveform], env)
     out = os.path.abspath(a.out)
     os.makedirs(out, exist_ok=True)
     ok = True
-    for n in ("MODS.BIN", "MODS2.BIN"):
+    for n in ("MODSX.BIN", "MODS.BIN", "MODS2.BIN"):
         shutil.copy(os.path.join(WORK, "mods_all", n), out)
         ok &= report(os.path.join(out, n), (n, "rgb" if n == "MODS.BIN" else a.waveform, stems))
     print("written to %s\nnext: ./xdjmod write --to /Volumes/<STICK>   (docs/STICK.md)" % out)
+    if stems:
+        print("note: builds with stems have no tested reference in this version")
     if not ok and a.waveform == "rgb" and not stems:
         print("WARNING: output differs from the tested build; open an issue before using it.")
         sys.exit(2)
@@ -187,7 +189,7 @@ def cmd_stick(a):
 
 def cmd_write(a):
     src = os.path.abspath(a.src)
-    files = [os.path.join(src, n) for n in ("MODS.BIN", "MODS2.BIN")]
+    files = [os.path.join(src, n) for n in ("MODSX.BIN", "MODS.BIN", "MODS2.BIN")]
     for f in files:
         if not os.path.isfile(f):
             die("%s missing: run `./xdjmod stick --upd ...` first" % f)
@@ -195,7 +197,7 @@ def cmd_write(a):
     if not os.path.isdir(os.path.join(vol, "PIONEER")):
         die("%s has no PIONEER folder: not a rekordbox USB stick?" % vol)
     if not a.yes:
-        r = input("copy MODS.BIN + MODS2.BIN to %s (replacing older copies)? [y/N] " % vol)
+        r = input("copy MODSX.BIN, MODS.BIN and MODS2.BIN to %s (replacing older copies)? [y/N] " % vol)
         if r.strip().lower() != "y":
             die("nothing written")
     for f in files:
@@ -229,10 +231,10 @@ def main():
     p = sp.add_parser("firmware", help="build the USB-stick-loader enabler UPD + the stock restore UPD")
     p.add_argument("--upd", required=True, help="official XDJ1000.UPD, v1.13")
     p.add_argument("--out", default=os.path.join(HERE, "out"), help="output folder (default ./out)")
-    p.add_argument("--banner", default="1.15", help="version the enabler shows the updater (default 1.15)")
+    p.add_argument("--banner", default="1.17", help="version the enabler shows the updater (default 1.17)")
     p.add_argument("--restore-banner", default="1.16", help="version of the stock restore (default 1.16)")
     p.set_defaults(f=cmd_firmware)
-    p = sp.add_parser("stick", help="build MODS.BIN + MODS2.BIN")
+    p = sp.add_parser("stick", help="build MODSX.BIN (enabler v2) + MODS.BIN, MODS2.BIN (first enabler)")
     p.add_argument("--upd", required=True, help="official XDJ1000.UPD, v1.13")
     p.add_argument("--out", default=os.path.join(HERE, "out", "stick"), help="output folder (default ./out/stick)")
     p.add_argument("--waveform", choices=("rgb", "3band", "blue"), default="rgb",

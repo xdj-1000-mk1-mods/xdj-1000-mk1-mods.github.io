@@ -13,7 +13,16 @@ That function:
 2. on the `export.pdb` lookup, once per power-on: opens `<stick>:/MODS.BIN` with the
    firmware's own file calls, checks it (pass 1), then applies it (pass 2).
 
-## 2. MODS.BIN / MODS2.BIN format
+**Enabler v2 (loader X)** is the same loader with a second hook and one file,
+`MODSX.BIN`, read through a 512 KB buffer at 0x09a00000:
+- the own-stick hook as above;
+- the LINK hook: the pointer at 0x08cfdc54, through which the Pro DJ Link code calls
+  the firmware's set-drive-type routine when it registers another player's stick as
+  drive `D:`. After the stock call, in that task, the loader opens `D:/MODSX.BIN` with
+  the firmware's own open/read/close and installs it the same way. A busy flag keeps
+  the two hooks off the one buffer.
+
+## 2. MODS.BIN / MODS2.BIN / MODSX.BIN format
 ```
 u32 'MODS', u32 1, u32 total bytes, u32 crc32(bytes 16..)
 ops: CHECK addr val | COPY dst len flags data | ZERO dst len flags |
@@ -42,6 +51,7 @@ the 3-band reader uses it.
 | 0x09854000 | stems mixer |
 | 0x098c0000 | phase meter |
 | 0x098e0000 | STEMS UI |
+| 0x099e0000 | colour over LINK (flag word 0x099efff0) |
 | 0x099ec000 | `.2EX` 3-band reader + settings writer |
 | 0x099ee000 | loader2 (state 0x099eff00, drive word 0x099effc0, settings state 0x099effd0) |
 | 0x099f0000 | loader1 (flashed; state 0x099f0f00, stage to 0x09a00000) |
@@ -53,6 +63,7 @@ the 3-band reader uses it.
 | display flush slot 0x08c37f14 | STEMS UI → phase meter → stock |
 | touch slot 0x08cf94f4 | STEMS UI → BEAT JUMP paging → stock |
 | `.EXT` parse pointer 0x08cae4ac | 3-band reader + settings writer |
+| audio-open pointer 0x08d8b86c | colour over LINK (`src/mk1/lnk/`): the media task that opens a LINK track's audio can read other files on `D:`; opening files from the audio *read* path hangs that task |
 | file read 0x08d06c98 / 0x08d86bb4 | stems mixer |
 | waveform painters (several) | colour waveforms |
 

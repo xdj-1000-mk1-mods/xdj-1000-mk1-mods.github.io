@@ -1,14 +1,15 @@
 # XDJ-1000 MK1 Mods
 
-**Version 0.1.3**: what changed is in [CHANGELOG.md](CHANGELOG.md).
+**Version 0.2.0**: what changed is in [CHANGELOG.md](CHANGELOG.md).
 
 Mods for the **Pioneer DJ XDJ-1000 (MK1), firmware 1.13**: colour and 3-band
 waveforms, a phase meter that follows the tempo master, beat-jump paging, an
 optional stems mixer, all loaded **from a USB stick**.
 
 You flash one small change to the deck: the **stick loader enabler**. After
-that, every mod comes off the stick and lives in RAM only. A stick without the
-mod files, or a power cycle without that stick, gives you the stock deck.
+that, every mod comes off a stick (the deck's own, or the linked player's) and
+lives in RAM only. With no mods stick on the link, a power cycle gives you the
+stock deck.
 
 > **Status:** works on the authors' own XDJ-1000 MK1 (1.13) and passes the
 > qemu tests (see [docs/TESTING.md](docs/TESTING.md)). This is a hobby
@@ -22,7 +23,8 @@ This repo contains **no firmware**. You bring your own official
 
 | Mod | What it does |
 |---|---|
-| Colour waveforms | RGB overview, centre and PERFORM waveforms. UTILITY > **WAVEFORM COLOR**: BLUE / RGB / 3-BAND. Tracks from this deck's own stick; LINK tracks stay stock blue |
+| Colour waveforms | RGB overview, centre and PERFORM waveforms. UTILITY > **WAVEFORM COLOR**: BLUE / RGB / 3-BAND. Also for tracks loaded over LINK from another player's stick |
+| Mods over LINK | one mods stick is enough: a deck with the enabler takes the mods from its own stick or from the linked player's stick |
 | 3-BAND from rekordbox | uses the 3-band data rekordbox already writes (`ANLZ0000.2EX`); works with any normal export |
 | Phase meter | blue row = this deck, orange row = the tempo master (any player 1-6). Works for tracks loaded over LINK too. UTILITY > **PHASE METER** ON/OFF |
 | Settings on the stick | WAVEFORM COLOR and PHASE METER are remembered per stick (`MODSCFG.BIN`) |
@@ -40,10 +42,13 @@ uploads nothing, and only offers files that match the tested builds byte for byt
 1. `XDJ1000.UPD`: alone in the root of an empty FAT32 stick, keeping exactly that name, install once like
    an official update ([docs/FLASHING.md](docs/FLASHING.md)). Keep `XDJ1000_restore_1.16.UPD`, the way back
    (rename it to `XDJ1000.UPD` on its stick).
-2. `MODS.BIN` + `MODS2.BIN`: copy both to the root of your rekordbox stick, power-cycle
+2. `MODSX.BIN`, `MODS.BIN`, `MODS2.BIN`: copy all three to the root of your rekordbox stick, power-cycle
    the deck and insert the stick before loading a track ([docs/STICK.md](docs/STICK.md)).
 
-The BEAT JUMP labels in `MODS2.BIN` are drawn from your firmware's own digits. The page does
+Already on the 0.1.x enabler? It keeps working with the new stick files, including colour
+over LINK. Reflash only if you want decks to take the mods from another deck's stick.
+
+The BEAT JUMP labels in the mod files are drawn from your firmware's own digits. The page does
 that with the repo's Python code, run in the browser (Pyodide, about 15 MB the first time).
 
 (The page is `index.html` + `web/`, published by GitHub Pages from `main` / root.)
@@ -59,7 +64,7 @@ brew install gmp mpfr libmpc isl hidapi        # compiler libraries + USB-B acce
 ./xdjmod setup                                 # Python venv + SH compiler (15-30 min, once)
 ./xdjmod check    --upd ~/Downloads/XDJ1000.UPD
 ./xdjmod firmware --upd ~/Downloads/XDJ1000.UPD    # optional: same enabler + restore as the web page
-./xdjmod stick    --upd ~/Downloads/XDJ1000.UPD    # -> out/stick/ (MODS.BIN + MODS2.BIN)
+./xdjmod stick    --upd ~/Downloads/XDJ1000.UPD    # -> out/stick/ (MODSX.BIN, MODS.BIN, MODS2.BIN)
 ./xdjmod write    --to /Volumes/MYSTICK            # your rekordbox stick
 ```
 

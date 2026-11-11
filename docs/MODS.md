@@ -10,12 +10,13 @@ The overview, centre and PERFORM waveforms in colour. UTILITY > **WAVEFORM COLOR
 
 The setting is saved on the stick ([STICK.md](STICK.md#settings-file-modscfgbin)).
 
-**Colour needs the track on this deck's own stick.** For a track loaded over
-Pro DJ Link from another player's USB, the MK1 never receives the colour data,
-so it shows the stock blue waveform for that track. Before 2026-11-10 it wrongly
-showed the colours of the last track loaded from its own stick. For colour on
-both decks, put the stick with the mods in the MK1 and let the other player load
-from it over LINK.
+**Tracks loaded over LINK get colour too (0.2.0).** The MK1 never receives colour
+data from another player, so the mod fetches it: the other player's stick is
+reachable as a drive, and at track load the mod finds the track in that stick's
+`export.pdb` and reads the colour (PWV4/PWV5) and 3-band (PWV6/PWV7) sections from its
+analysis files. This costs a little extra load time per LINK track. The data is only
+shown when its length matches the loaded track; otherwise the waveform stays stock
+blue. Tested with another XDJ-1000 MK1 and a CDJ-2000NXS as the source.
 Built from XDJ Mod Studio's XDJ-700 code, with only the MK1 addresses
 swapped in.
 

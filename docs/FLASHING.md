@@ -5,7 +5,7 @@ Drop your `XDJ1000.UPD` on the project's web page, which builds in your browser 
 
 | File | What it is |
 |---|---|
-| `XDJ1000.UPD` (`XDJ1000_version_tag_loader_v1.15.UPD` from `xdjmod`) | the **enabler**: stock 1.13 plus the stick loader |
+| `XDJ1000.UPD` (`XDJ1000_version_tag_loaderx_v1.17.UPD` from `xdjmod`) | the **enabler** (v2 since 0.2.0): stock 1.13 plus the stick loader |
 | `XDJ1000_restore_1.16.UPD` | the **way back**: Pioneer's own 1.13, byte for byte, with only its version banner raised |
 
 Both refuse any input file except the official XDJ-1000 v1.13 update (SHA-256
@@ -17,17 +17,21 @@ page offers nothing if they differ, and `xdjmod` warns. Do not flash a file that
 
 Compared with stock 1.13, the update file differs only in the decoded MAIN image:
 
-- **The stick loader** (1.3 KB) goes into a free RAM area at power-on. A
+- **The stick loader** (1.9 KB; 1.3 KB in the first enabler) goes into a free RAM area at power-on. A
   small boot copier, run from the firmware's init hook, puts it there.
+- **A second pointer (enabler v2):** the Pro DJ Link code registers another player's
+  stick as a drive through one firmware routine. Its pointer for that call also goes to
+  the loader, which calls the stock routine first and then, if nothing is installed yet,
+  looks for `MODSX.BIN` on that linked stick.
 - **One pointer:** the firmware's USB-stick mount check builds the path of
   `PIONEER/rekordbox/export.pdb` through a pointer. That pointer now points
   to the loader, which calls the stock function first and returns the same
-  result. Once per power-on it then looks for `MODS.BIN` in the stick root.
-  No file means nothing happens.
+  result. Once per power-on it then looks for `MODSX.BIN` in the stick root
+  (`MODS.BIN` on the first enabler). No file means nothing happens.
 - **The version text** `1.13` becomes `1.13-MOD` (UTILITY > VERSION), so
   you can see that the enabler is installed.
-- **The update file's banner** says `Ver1.15`, so the updater accepts it as
-  newer than 1.13. The updater screen therefore says "1.13 to 1.15".
+- **The update file's banner** says `Ver1.17` (`Ver1.15` for the first enabler), so the
+  updater accepts it as newer than 1.13 and shows that number on its screen.
 
 The boot stub, the updater block and the panel firmware (PANL) are identical
 to stock, and the build checks this. Every block checksum is recomputed,
@@ -63,7 +67,8 @@ updater skips files that aren't newer. Afterwards the deck runs plain stock
 
 Tested on hardware so far:
 - stock 1.13 → restore (built with banner 1.14) → stock 1.13 ✔
-- stock 1.13 → enabler (banner 1.15) → 1.13-MOD ✔
+- stock 1.13 → first enabler (banner 1.15) → 1.13-MOD ✔
+- first enabler → enabler v2 (banner 1.17) ✔
 
 The 1.16 restore over the enabler is the same kind of file, but nobody has
 tried it on a deck yet. If you do, please report back.

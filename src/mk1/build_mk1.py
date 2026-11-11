@@ -78,6 +78,12 @@ def loader(dec):
     loader_mk1.bake(dec)
 
 
+def loaderx(dec):
+    """loader X baked in: MODSX.BIN from the deck's own stick or the linked player's (mk1/mods_all.py)"""
+    import mods_all
+    mods_all.bake_x(dec)
+
+
 def build(mods, banner=None):
     stock_raw = open(STOCK, "rb").read()
     if sha(stock_raw) != MODEL["upd_sha256"]:
@@ -91,7 +97,7 @@ def build(mods, banner=None):
     stock_dec = bytes(dec)
     for m in mods:
         print("==> mod:", m)
-        {"version_tag": version_tag, "flash": flash, "loader": loader}[m](dec)
+        {"version_tag": version_tag, "flash": flash, "loader": loader, "loaderx": loaderx}[m](dec)
     changed = [i for i in range(len(dec)) if i >= len(stock_dec) or dec[i] != stock_dec[i]]
     print(f"{len(changed)} bytes of the decoded image changed: "
           + ", ".join(f"{BASE + i:#010x}" for i in changed[:12]))

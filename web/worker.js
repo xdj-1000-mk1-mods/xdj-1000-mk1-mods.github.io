@@ -1,5 +1,5 @@
 // Runs the builds off the page's main thread. In: {file: ArrayBuffer}.
-// Out: {log}, {progress}, {error}, {done: {enabler, restore, mods, mods2}}.
+// Out: {log}, {progress}, {error}, {done: {enabler, restore, mods, mods2, modsx}}.
 // Every file is only handed out if its SHA-256 equals the tested build.
 import { buildEnabler, buildRestore, decodeMain, sha256 } from "./core.js";
 
@@ -50,13 +50,19 @@ self.onmessage = async (ev) => {
 
     const labels = await renderLabels(await decodeMain(raw, P));
     if ((await sha256(labels)) !== S.labels_sha256) throw new Error("label graphics are not the tested ones");
-    const pre = b64(S.mods2_pre_b64), post = b64(S.mods2_post_b64);
-    const mods2 = new Uint8Array(pre.length + labels.length + post.length);
-    mods2.set(pre); mods2.set(labels, pre.length); mods2.set(post, pre.length + labels.length);
+    const join = (pre, post) => {
+      const out = new Uint8Array(pre.length + labels.length + post.length);
+      out.set(pre); out.set(labels, pre.length); out.set(post, pre.length + labels.length);
+      return out;
+    };
+    const mods2 = join(b64(S.mods2_pre_b64), b64(S.mods2_post_b64));
+    const modsx = join(b64(S.modsx_pre_b64), b64(S.modsx_post_b64));
     const mods = b64(S.mods_b64);
-    if ((await sha256(mods)) !== S.mods_sha256 || (await sha256(mods2)) !== S.mods2_sha256)
+    if ((await sha256(mods)) !== S.mods_sha256 || (await sha256(mods2)) !== S.mods2_sha256
+        || (await sha256(modsx)) !== S.modsx_sha256)
       throw new Error("stick files are not the tested build");
-    self.postMessage({ done: { enabler, restore, mods, mods2 } }, [enabler.buffer, restore.buffer, mods.buffer, mods2.buffer]);
+    self.postMessage({ done: { enabler, restore, mods, mods2, modsx } },
+                     [enabler.buffer, restore.buffer, mods.buffer, mods2.buffer, modsx.buffer]);
   } catch (e) {
     self.postMessage({ error: "Build stopped: " + e.message + ". Nothing to download; please open an issue." });
   }

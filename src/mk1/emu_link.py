@@ -30,8 +30,9 @@ if __name__ == "__main__":
     av = sys.argv[1:]
     if av[:1] == ["dhcp"]:
         g = E.argv_for("xdj1000")[1]["GROUP"]
-        sys.exit(subprocess.call([sys.executable, os.path.join(HERE, "net_lo.py"),
-                                  os.path.join(E.NXS2, "scripts", "net", "dhcp_server.py"), g]))
+        os.chdir(E.NXS2)                               # exec: stopping this process stops the server itself
+        os.execv(sys.executable, [sys.executable, os.path.join(HERE, "net_lo.py"),
+                                  os.path.join(E.NXS2, "scripts", "net", "dhcp_server.py"), g])
     if av[0] == "boot" and "--kernel" in av:
         k = av[av.index("--kernel") + 1]
         stick = av[av.index("--stick") + 1] if "--stick" in av else E.STICK

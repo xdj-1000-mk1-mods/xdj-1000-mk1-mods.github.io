@@ -66,6 +66,77 @@ def build_loader2():
     return img, syms
 
 
+LX = M["stick_loader_x"]
+BASEX, ENDX, STATEX = H(LX["addr"]), H(LX["end_max"]), H(LX["state"])
+STAGEX, STAGEX_END = H(LX["stage"]), H(LX["stage_end"])
+LINK_POOL, LINK_STOCK = H(M["link_drive"]["link_pool"]), H(M["link_drive"]["set_drive_type"])
+
+
+def build_loaderx():
+    """loader X = the enabler v2's loader (ldr.c with LINK_SET_STOCK): MODSX.BIN from
+    the deck's own stick (mount check) or from the linked player's stick (link mount)"""
+    FA = M["file_api"]
+    d = dict(PB_STOCK=LD.POOL_STOCK, OPEN_R=H(LD.L["open_r"]), READ_DB=H(LD.L["read_db"]),
+             CLOSE_DB=H(LD.L["close_db"]), NAME_PDB=H(LD.L["name_pdb"]),
+             STATE=STATEX, STAGE=STAGEX, STAGE_END=STAGEX_END, FREE_LO=FREE2[0], FREE_HI=FREE2[1], LDR_LO=BASEX,
+             FILE_NAME='"%s"' % LX["file"], LINK_SET_STOCK=LINK_STOCK,
+             FOPEN_W=H(FA["fopen_w"]), FREAD_C=H(FA["fread_c"]), FCLOSE_C=H(FA["fclose_c"]))
+    src = os.path.join(HERE, "loader")
+    out = os.path.join(ROOT, "work", "loaderx")
+    os.makedirs(out, exist_ok=True)
+    img, syms = shbuild.build(out, "ldrx", [os.path.join(src, "ldrentry.S"), os.path.join(src, "ldr.c")],
+                              BASEX, ENDX, d, "_ldr_head", keep=("_ldr_", "_end"), text_off=0x20,
+                              extra=("-fno-tree-loop-distribute-patterns",))
+    assert syms["ldr_head"] == BASEX and struct.unpack_from("<I", img, 4)[0] == syms["ldr_path_build"]
+    assert struct.unpack_from("<I", img, 16)[0] == syms["ldr_link_mount"] and struct.unpack_from("<I", img, 12)[0] == 2
+    return img, syms
+
+
+def bake_x(dec, log=print):
+    """flash form of loader X: as loader_mk1.bake, plus the LINK set-drive-type pool word"""
+    import permanent_mk1 as PM
+    img, s = build_loaderx()
+    m = PM.Img(dec)
+    assert m.r32(LD.POOL) == LD.POOL_STOCK, "path_build pool not stock in the image"
+    assert m.r32(LINK_POOL) == LINK_STOCK, "link set-drive-type pool not stock in the image"
+    m.zero_fill(STATEX, 0x100)
+    m.write(BASEX, img)
+    m.write(LD.POOL, struct.pack("<I", s["ldr_path_build"]))
+    m.write(LINK_POOL, struct.pack("<I", s["ldr_link_mount"]))
+    tail, jobs, n = PM.boot_tail(m)
+    log("loader X: module %#x (+%d B), state %#x zeroed, mount pool %#x -> %#x, link pool %#x -> %#x; "
+        "boot copier %d jobs at %#x (+%d B)" % (BASEX, len(img), STATEX, LD.POOL, s["ldr_path_build"],
+                                                 LINK_POOL, s["ldr_link_mount"], len(jobs), tail, n))
+    return s
+
+
+def plan_x(mode="rgb", stems=True):
+    """MODSX.BIN: everything in one file. The mods (plan2), then loader2 as the stick-side
+    service (drive word + MODSCFG.BIN on every own-stick mount), its state preset to
+    'installed OK' so it never looks for MODS2.BIN, and the mount pool: loader X -> loader2."""
+    lx_img, lx = build_loaderx()
+    l2img, l2 = build_loader2()
+    ops, info = plan2(mode, stems)
+    st = struct.pack("<3I", 0x5453444C, 0x454E4F44, 2) + bytes(0x100 - 12)      # 'LDST', 'DONE', S_OK
+    ops = ops + [(LD.OP_COPY, BASE2, l2img, 0), (LD.OP_COPY, STATE2, st, 0),
+                 (LD.OP_STORE, LD.POOL, lx["ldr_path_build"], l2["ldr_path_build"], 0)]
+    return ops, info, lx, l2
+
+
+def cmd_build_x(mode="rgb", stems=None):
+    if stems is None:
+        stems = os.environ.get("XDJMOD_STEMS", "1") != "0"
+    os.makedirs(OUT, exist_ok=True)
+    ops, info, lx, l2 = plan_x(mode, stems)
+    blob = LD.pack(ops, cap=STAGEX_END - STAGEX)
+    open(os.path.join(OUT, LX["file"]), "wb").write(blob)
+    print("%-10s %7d B  sha256 %s" % (LX["file"], len(blob), hashlib.sha256(blob).hexdigest()))
+    print("loader X entries: mount %#x, link %#x; %d ops (%d STORE); overlapping blocks: %s"
+          % (lx["ldr_path_build"], lx["ldr_link_mount"], len(ops), sum(o[0] == LD.OP_STORE for o in ops),
+             overlaps(ops) or "none"))
+    return blob, ops, info, lx, l2
+
+
 def bootstrap(l2img, l2syms):
     l1img, l1 = LD.build()                                     # = the flashed loader (sha checked by the caller)
     return [(LD.OP_COPY, BASE2, l2img, 0),
@@ -112,6 +183,10 @@ def plan2(mode="rgb", stems=True):
     xb, xs, xsyms = X2.ops(LD.OP_COPY, LD.OP_ZERO, LD.OP_STORE, settings=cfg_defs())
     blocks += xb
     stores += [(o[1], o[2], o[3], o[4]) for o in xs]
+    import lnk_mk1 as LK                                       # colour / 3-band for LINK loads
+    lb, ls, lsyms = LK.ops(LD.OP_COPY, LD.OP_ZERO, LD.OP_STORE)
+    blocks += lb
+    stores += [(o[1], o[2], o[3], o[4]) for o in ls]
     S = Steps()
     bimg, bs = BJ.build()
     S.add(BJ.install_steps(bs), {BJ.SLOT: BJ.STOCK})
@@ -135,7 +210,7 @@ def plan2(mode="rgb", stems=True):
             order.append(a)
     st_ops = [(LD.OP_STORE, a, final[a][0], final[a][1], final[a][2]) for a in order]
     ops = check + blocks + st_ops
-    info = dict(bj=bs, stems=ss, stemsui=us, ext2=xsyms)
+    info = dict(bj=bs, stems=ss, stemsui=us, ext2=xsyms, lnk=lsyms)
     return ops, info
 
 
@@ -334,6 +409,8 @@ if __name__ == "__main__":
     mode = av[av.index("--mode") + 1] if "--mode" in av else "rgb"
     if av[:1] == ["build"]:
         cmd_build(mode)
+    elif av[:1] == ["buildx"]:
+        cmd_build_x(mode)
     elif av[:1] == ["emu"]:
         sys.exit(emu(link="--link" in av))
     else:

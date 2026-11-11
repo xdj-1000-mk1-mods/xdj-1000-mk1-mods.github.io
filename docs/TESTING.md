@@ -35,7 +35,10 @@ Run the tests from `src/`, with the repo's Python (`../.venv/bin/python`).
 | `mk1/phasemeter_mk1.py emu` | Phase meter on main and PERFORM, compared against the expected drawing; BROWSE; ON/OFF |
 | `mk1/late_grid_emu.py` | The beat grid arrives after the track does (as on LINK loads) and is still picked up |
 | `mk1/link_load_emu.py` | Two linked emulated decks: deck B loads from deck A's USB over LINK, and its meter finds the grid |
-| `mk1/link_rgb_emu.py [MODS2.BIN]` | Two linked decks with a 3-track test stick (cdj-nxs2 `make_test_stick.py`): own-stick load = colour; a different track over LINK = no colour (it used to show the previous track's colours); own stick again = colour |
+| `mk1/link_colour_emu.py [MODS2.BIN]` | Two linked decks with a 3-track test stick (cdj-nxs2 `make_test_stick.py`): own-stick load = own colour; a track over LINK = that track's colour and 3-band data, byte-identical to the source stick's files; own stick again; the next LINK track |
+| `mk1/loaderx_emu.py link\|local` | Enabler v2: a deck with no mod files installs from the linked deck's stick, then shows colour on a LINK track; and the own-stick install |
+| `mk1/loaderx_cases_emu.py badcrc late track mixnew mixold` | Enabler v2: damaged file over LINK; other deck joins later; track already loaded; one stick with both file sets on the new and on the first enabler |
+| `mk1/link_mount_emu.py`, `link_aopen_emu.py`, `link_probe_emu.py`, `link_watch_emu.py` | The research behind it: where a file on the linked stick can (and can't) be opened |
 | `mk1/settings_emu.py` | Writable stick: `MODSCFG.BIN` is written once after a change. Checks the bytes from the Mac, `fsck_msdos` stays clean, and the settings return after a reboot |
 | `mk1/loader_mk1.py emu ok\|refuse\|badcrc\|nofile` | loader1 against good, refused (track loaded), corrupt and missing files |
 | `mk1/stems_mk1.py emu` | stems mixer output against reference mixes |
@@ -43,6 +46,8 @@ Run the tests from `src/`, with the repo's Python (`../.venv/bin/python`).
 **macOS notes:**
 - The emulated Pro DJ Link network runs over multicast on loopback (`mk1/net_lo.py`),
   because macOS blocks Wi-Fi multicast for these processes.
+- Stop leftover `dhcp_server.py` processes before a link test (`pkill -f dhcp_server.py`): several of them
+  hand the decks conflicting addresses and the link never comes up.
 - Keep the Mac awake and on power during the tests (`caffeinate -dis ...`). When an idle
   Mac on battery starves qemu of CPU, the network tests fail in confusing ways (for
   example, the emulated deck takes the master role itself).

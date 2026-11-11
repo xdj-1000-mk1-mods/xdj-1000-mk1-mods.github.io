@@ -34,6 +34,7 @@ SLOT4 = 0x09810000
 
 def run(slot, *a, bg=False, log=None):
     env = dict(os.environ, EMU_SLOT=str(slot))
+    env.pop("CDJ_ETHER_MAC", None)                 # emu_link picks the MAC per slot (ours may be in os.environ)
     argv = [P, os.path.join(HERE, "emu_link.py")] + list(a)
     if bg:
         return subprocess.Popen(argv, env=env, stdout=open(log, "wb"), stderr=subprocess.STDOUT, cwd=ROOT)

@@ -59,6 +59,13 @@ def load_upstream():
                 "PALETTE = %s           # stock value of POOL" % ce["palette"])
     dsrc = _sub(dsrc, "INSN = 0x08DC3B86", "INSN = %s" % ce["colour_fetch"])
     dsrc = _sub(dsrc, "SLOT7 = 0x098B0000", "SLOT7 = %#x" % (HOME + 0x100000))
+    # MK1: the snapshot routine grows by the LINK check below: its scratch word moves 0x100 up (free RAM)
+    dsrc = _sub(dsrc, "DSCRATCH = DCAVE + 0x1FC        # u16 colour for the current column",
+                "DSCRATCH = DCAVE + 0x2FC        # u16 colour for the current column")
+    # MK1: while lnk.c's LINK data is in the slots (LINK_FLAG), the snapshot keeps its hands off
+    dsrc = _sub(dsrc, "  bt sdone                  ; same track: keep snapshots\n  mov.l r5,@r3\n",
+                "  bt sdone                  ; same track: keep snapshots\n  mov.l r5,@r3\n"
+                "  mov.l @(%s,pc),r0\n  mov.l @r0,r0\n  tst r0,r0\n  bf sdone\n" % E["lnk_module"]["flag"])
     dsrc = _sub(dsrc, "ROWINC = (0x08DC3B9E, 0x6291, 0x6295)", "ROWINC = (%s, 0x6291, 0x6295)" % ce["row_load"])
     dsrc = _sub(dsrc, "POOL2, PALETTE2 = 0x08DC2A18, 0x0E735FA8",
                 "POOL2, PALETTE2 = %s, %s" % (ce["twin_palette_slot"], ce["twin_palette"]))
@@ -84,8 +91,8 @@ LINK_GUARD = r"""
  * context changed (another deck loading from this deck's stick). If the
  * colour was emptied and the track then matches (a local load whose grid
  * landed late), the overview snapshot is forced to run again. */
-static u32 last_g, emptied;
-u32 cw_guard_same, cw_guard_empty;                       /* test probes */
+static u32 last_g, last_f, last_tl, emptied, hold;
+u32 cw_guard_same, cw_guard_empty, cw_guard_link;        /* test probes */
 
 static u32 dg_sig(void)
 {
@@ -109,8 +116,52 @@ static int same_track(void)
     return 1;
 }
 
-static void guard(u32 h)
+/* LINK data (lnk.c filled the slots from the linked stick, LINK_FLAG = 1):
+ * used once its length fits the loaded track (150 entries/s, like TRACK_LEN). */
+static u32 link_count(void)
 {
+    if (R32(SLOT5) == TAG_PWV5) return be32((const u8 *)SLOT5 + 16);
+    if (R32(SLOT7) == TAG_PWV7) return be32((const u8 *)SLOT7 + 16);
+    return 0;
+}
+
+static void k7_slot(void)                               /* snap7's scale, for a PWV7 already in SLOT7 */
+{
+    const u8 *sec = (const u8 *)SLOT7;
+    k7 = 0;
+    if (R32(SLOT7) != TAG_PWV7) return;
+    u32 len = be32(sec + 8), hl = be32(sec + 4), cnt = be32(sec + 16), peak = 1;
+    if (len > SLOT7_MAX || len < 24) return;
+    const u8 *p = sec + hl;
+    for (u32 j = 0; j < cnt && hl + 3 * j + 3 <= len; j++, p += 3) {
+        u32 v = p[2] * 125u + p[0] * 82u + p[1] * 64u;
+        if (v > peak) peak = v;
+    }
+    k7 = ((u32)ROWS << 16) / peak;
+}
+
+static void guard(u32 h, u32 f, u32 fchg)
+{
+    if (f) {
+        u32 n = link_count(), tl = R32(TRACK_LEN), d = n > tl ? n - tl : tl - n;
+        if (n && tl && d <= tl / 50 + 150) {
+            cw_guard_link++;
+            hold = 0;
+            emptied = 0;
+            k7_slot();
+        } else {
+            hold = 1;                                    /* not (yet) this track's: centre stays stock */
+            k7 = 0;
+        }
+        return;
+    }
+    hold = 0;
+    if (fchg) {                                          /* LINK data no longer current: drop it, snapshot again */
+        R32(SLOT4) = 0; R32(SLOT5) = 0; R32(SLOT6) = 0; R32(SLOT7) = 0;
+        k7 = 0;
+        R32(SNAP_HASH) = h ^ 0x5A5A5A5Au;
+        return;
+    }
     if (same_track()) {
         cw_guard_same++;
         if (emptied) {                                   /* colour back: rerun the overview snapshot */
@@ -134,9 +185,14 @@ def link_guard(src):
     old_head = "static u32 col(u32 idx8, u32 step, u32 white, u32 rmax, u32 pal)\n{"
     old_snap = ("    u32 h = R32(SNAP_HASH);\n    if (h != last_hash) {                             /* new track loaded */\n"
                 "        last_hash = h;\n        snap7();\n    }\n")
-    new_snap = ("    u32 h = R32(SNAP_HASH), g = dg_sig();\n    if (h != last_hash || g != last_g) {     /* new track / grid landed */\n"
-                "        last_hash = h;\n        last_g = g;\n        guard(h);\n    }\n")
+    new_snap = ("    u32 h = R32(SNAP_HASH), g = dg_sig(), f = R32(LINK_FLAG), tl = R32(TRACK_LEN);\n"
+                "    if (h != last_hash || g != last_g || f != last_f || tl != last_tl) {\n"
+                "        u32 fchg = f != last_f;\n"
+                "        last_hash = h;\n        last_g = g;\n        last_f = f;\n        last_tl = tl;\n"
+                "        guard(h, f, fchg);\n    }\n")
     src = _sub(src, old_snap, new_snap)
+    src = _sub(src, "    if (mode == 1 && R32(SLOT5) == TAG_PWV5) {", "    if (mode == 1 && !hold && R32(SLOT5) == TAG_PWV5) {")
+    src = _sub(src, "    if (mode == 2 && R32(SLOT7) == TAG_PWV7 && k7) {", "    if (mode == 2 && !hold && R32(SLOT7) == TAG_PWV7 && k7) {")
     i = src.index("u32 cw_col(u32 idx8, u32 step, u32 white)")
     return src[:i] + LINK_GUARD + "\n" + src[i:]
 
@@ -159,7 +215,8 @@ def cw_build_mk1(ro, rd):
              IDX_OFF=ro.IDX_OFF, TAG_PWV5=rd.TAG_PWV5, TAG_PWV7=rd.TAG_PWV7, SLOT7=rd.SLOT7,
              SLOT7_MAX=rd.SLOT7_MAX, SLOT4=ro.SLOT4, SLOT6=ro.SLOT6,
              PQTZ_OFF=int(bg["ctx_off"], 16), TAG_PQTZ=int(bg["tag"], 16),
-             DG_VALID=int(g["valid"], 16), DG_COUNT=int(g["count"], 16), DG_ENTRIES=int(g["entries"], 16))
+             DG_VALID=int(g["valid"], 16), DG_COUNT=int(g["count"], 16), DG_ENTRIES=int(g["entries"], 16),
+             LINK_FLAG=int(E["lnk_module"]["flag"], 16), TRACK_LEN=int(E["track_len_word"]["addr"], 16))
     elf = os.path.join(d, "cw.elf")
     subprocess.run([os.path.join(SH, "sh-elf-gcc"), "-m4-nofpu", "-mdiv=call-div1", "-ml", "-O2", "-Wall",
                     "-ffreestanding", "-fno-builtin"] + ["-D%s=%#xu" % kv for kv in D.items()] +

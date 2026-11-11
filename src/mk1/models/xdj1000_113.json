@@ -464,6 +464,40 @@
       "evidence": "state inside loader2's state page 0x099eff00..0x099f0000 (zeroed by the bootstrap, next to ext2 drive_word 0x099effc0); wave word = snapshot bundle rgb.mode addr (UTILITY WAVEFORM COLOR row writes it); write API = file_api fopen_w 'w' / fwrite_c / fclose_c as the firmware's own USB-shell screen dump (0x08acf9e4)",
       "unverified": true
     },
+    "lnk_module": {
+      "hardware": "deck 2026-11-11 (user): enabler v2 flashed; mods installed over LINK from the other deck's stick and colour waveforms on LINK tracks work as expected; a CDJ-2000NXS (NXS1) also works as the source",
+      "addr": "0x099e0000",
+      "end_max": "0x099ec000",
+      "flag": "0x099efff0",
+      "slot7": "0x09900000",
+      "slot7_max": "0xb0000",
+      "evidence": "home: free RAM between the centre waveform's SLOT7 (ends 0x099b0000) and ext2_module; 0x099b0000-0x09a00000 is otherwise only the key-shift UI's image area (not shipped: do not install both). flag: a word in loader2's state page (zeroed when the mods go in), read by rgb_mk1's LINK_GUARD and the COPY5 patch. slot7 = rgb_mk1 HOME + 0x100000, SLOT7_MAX from upstream rgb_detail.py",
+      "unverified": true
+    },
+    "stick_loader_x": {
+      "hardware": "deck 2026-11-11 (user): enabler v2 flashed; mods installed over LINK from the other deck's stick and colour waveforms on LINK tracks work as expected; a CDJ-2000NXS (NXS1) also works as the source",
+      "addr": "0x099f0000",
+      "end_max": "0x099f0f00",
+      "state": "0x099f0f00",
+      "stage": "0x09a00000",
+      "stage_end": "0x09a80000",
+      "file": "MODSX.BIN",
+      "evidence": "loader X (enabler v2): same home and state as stick_loader (it replaces it in the flash image); stage = ram_free_2 (512 KB, deck survey 2026-11-06) so one file holds everything; second hook = link_drive link_pool. Old MODS.BIN files are refused by it (their STORE expects the old loader entry) and it reads another name, so a stick can carry both sets",
+      "unverified": true
+    },
+    "link_drive": {
+      "audio_open_pool": "0x08d8b86c",
+      "audio_open_evidence": "pool word of the media task's audio open only (jsr at 0x08d8b758, pr 0x08d8b75c; value fopen_w 0x08d8611c, one of 41 pool words to it). qemu 2026-11-11 mk1/link_aopen_emu.py (linkprobe/aopen.c on that word): after the stock open of the LINK track's audio, fopen_w(D:/PIONEER/rekordbox/export.pdb, 'r', the caller's desc) + fread_c 512 B (same desc) = deck A's file; with desc 0 not needed. Per LINK load: 5 opens of the loaded track, then 1 open of the NEXT track in the list (link_files_emu.py). The loaded track's ANLZ path is not in the deck's RAM after a LINK load (only its own stick's)",
+      "set_drive_type": "0x08d88fe4",
+      "link_pool": "0x08cfdc54",
+      "link_call": "0x08cfdbc4 (jsr @r13; r4 drive letter 'D', r5 type 5, r6 remote drive 'C', r7 peer IP)",
+      "mount_evidence": "qemu 2026-11-10/11: gdb write watchpoint on entry 'd' (mk1/link_watch_emu.py): written by 0x08d89012..0x08d89028 (set_drive_type 0x08d88fe4: entry = table + (letter|0x20)*12; u16 type, u8 remote drive, u32 ip), pr 0x08cfdbc8; 8 pool words point at the function, the LINK caller uses 0x08cfdc54. Real-code probe (mk1/linkprobe/mount.c on that pool word, mk1/link_mount_emu.py): after the stock call, fopen_w(L'D:/PIONEER/rekordbox/export.pdb','r',0) + fread_c 512 B + fclose_c in that task = deck A's file byte for byte; deck B then still loads over LINK. From INSIDE the audio read path the same open never returns (mk1/link_probe_emu.py)",
+      "letter": "D",
+      "drive_table": "0x0f2d80c0",
+      "entry": "12 B at drive_table + (letter|0x20)*12; LINK entry: u16 type 5, u16 remote drive letter ('C'), u32 remote player IP (BE), ...",
+      "evidence": "qemu 2026-11-10, two linked MK1s (mk1/link_files_emu.py, link_read_emu.py): deck B loading a track over LINK from deck A opens the audio as fopen_w(L\"D:/Contents/.../01 Grid 128 Am.mp3\", \"r\", desc = media task's stack struct) from 0x08d8b758 (pool 0x08d8b86c); drive entry 'd' = 05004300 c0a8320b (192.168.50.11 = deck A); the audio is then read by fread_c(buf, 1, 2048, fp, desc 0x0c7282b8) from 0x08bfa3e2 (another task), returning real data ('ID3\\x04'). A direct gdb-injected fopen_w on other D: paths returns a handle even for a missing file and an immediate fread_c returns 0: the open looks asynchronous / per-task (desc). ANLZ data for LINK tracks is NOT read through files (comes via the players' database service)",
+      "unverified": true
+    },
     "track_len_word": {
       "addr": "0x0e43c104",
       "evidence": "700 0x0ba3c050 (ksh.c TRACK_LEN, 'no track loaded' gate): in the centre painter (700 0x08dc39b6 / MK1 0x08d6a6ea) the pc-loads with matching neighbour literals load 0x0e43c104 (5 sites); same distance 0x384 from the preview pointer on both (700 0x0ba3bccc, MK1 0x0e43bd80)",

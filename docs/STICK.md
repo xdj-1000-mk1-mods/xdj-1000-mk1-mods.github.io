@@ -1,22 +1,27 @@
 # The mods stick
 
-Get `MODS.BIN` and `MODS2.BIN` from the project web page (drop your `XDJ1000.UPD`), or build them:
+Get `MODSX.BIN`, `MODS.BIN` and `MODS2.BIN` from the project web page (drop your `XDJ1000.UPD`), or build them:
 
 ```bash
 ./xdjmod stick --upd XDJ1000.UPD [--waveform rgb|3band|blue] [--stems-screenshot PERFORM.png]
 ./xdjmod write --to /Volumes/MYSTICK
 ```
 
-Copy both files (or let `write` copy them) to the **root** of any rekordbox USB stick (one that
+Copy all three files (or let `write` copy them) to the **root** of any rekordbox USB stick (one that
 has a `PIONEER` folder). Your music and the export stay untouched.
 
 | File | Size | Role |
 |---|---|---|
-| `MODS.BIN` | 1.7 KB | read by the flashed loader: installs a second loader |
-| `MODS2.BIN` | 240 KB (350 KB with stems) | read by the second loader in the same insert: all the mods |
+| `MODSX.BIN` | 246 KB | enabler v2: all the mods in one file, read from this stick or over LINK |
+| `MODS.BIN` | 1.7 KB | first enabler: installs a second loader |
+| `MODS2.BIN` | 244 KB | first enabler: read by the second loader in the same insert: all the mods |
 | `MODSCFG.BIN` | 20 B | **written by the deck**: your WAVEFORM COLOR and PHASE METER settings |
 
-Don't rename them. `MODS.BIN` and `MODS2.BIN` must both be there.
+Don't rename them. Each deck takes the files its enabler understands and ignores the rest.
+
+**Over LINK (enabler v2):** a deck without a mods stick installs the mods from the linked
+player's stick as soon as that stick shows up on the link, as long as no track is loaded
+on it yet. If a track is already loaded, it waits for the next power-on.
 
 ## Using it
 
@@ -47,7 +52,7 @@ one, are applied when you insert it.
 | Still nothing | `./xdjmod deck-status` over USB-B: the `loader status` line says why (`NOFILE`, `BADCRC`, `NOTSTOCK` = a track was loaded / mods already in, ...) |
 | 3-BAND looks like RGB | that track has no `ANLZ0000.2EX` 3-band data: re-analyse it in rekordbox 6/7 and export again |
 | Phase meter blue row has no ticks | the track has no beat grid; `deck-status` prints `pm_n` (beats found) and the deck's grid table |
-| Blue waveform on a track loaded over LINK | expected: colour only comes from this deck's own stick ([MODS.md](MODS.md#colour-waveforms)) |
+| Blue waveform on a track loaded over LINK | needs the 0.2.0 stick files on the deck showing it; the source stick must be a rekordbox export with colour analysis ([MODS.md](MODS.md#colour-waveforms)) |
 | Orange row mirrors your own deck | this deck is tempo master, which is how it should behave |
 
 If you open an issue, include the `deck-status` output.

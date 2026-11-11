@@ -9,7 +9,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 W = os.path.join(HERE, "..", "src", "work")
 M = json.load(open(os.path.join(HERE, "..", "src", "mk1", "models", "xdj1000_113.json")))
 a = open(os.path.join(W, "MAIN_mk1_113.img"), "rb").read()
-b = open(os.path.join(W, "mk1build", "MAIN_mk1_113_version_tag_loader.img"), "rb").read()
+b = open(os.path.join(W, "mk1build", "MAIN_mk1_113_version_tag_loaderx.img"), "rb").read()
 h = lambda p: hashlib.sha256(open(p, "rb").read()).hexdigest()
 runs, i = [], 0
 while i < len(a):
@@ -21,12 +21,12 @@ while i < len(a):
         i = j
     else:
         i += 1
-d = dict(note="XDJ-1000 MK1 v1.13 stick-loader enabler: our changes to the decoded MAIN image "
+d = dict(note="XDJ-1000 MK1 v1.13 stick-loader enabler v2 (own stick + linked stick): our changes to the decoded MAIN image "
               "(offsets from 0x08000000). Our code and pointers only; no firmware bytes.",
          upd_sha256=M["upd_sha256"], image_sha256=hashlib.sha256(a).hexdigest(),
          out_image_sha256=hashlib.sha256(b).hexdigest(), out_len=len(b), runs=runs, tail=b[len(a):].hex(),
-         block=[0x40000, 6941185], banner="1.15", restore_banner="1.16",
-         enabler_sha256=h(os.path.join(W, "mk1build", "XDJ1000_version_tag_loader_v1.15.UPD")),
+         block=[0x40000, 6941185], banner="1.17", restore_banner="1.16",
+         enabler_sha256=h(os.path.join(W, "mk1build", "XDJ1000_version_tag_loaderx_v1.17.UPD")),
          restore_sha256=h(os.path.join(W, "mk1restore", "XDJ1000_restore_1.16.UPD")))
 open(os.path.join(HERE, "patch.json"), "w").write(json.dumps(d, indent=0))
 print("patch.json: %d runs, %d B tail, enabler %s" % (len(runs), len(b) - len(a), d["enabler_sha256"][:16]))
@@ -46,5 +46,10 @@ st = dict(note="Stick files for the browser builder. MODS.BIN is ours, whole. MO
           mods_b64=base64.b64encode(mods).decode(), mods_sha256=sh(mods),
           mods2_pre_b64=base64.b64encode(m2[:off]).decode(), mods2_post_b64=base64.b64encode(m2[off + len(lab):]).decode(),
           label_off=off, label_len=len(lab), labels_sha256=sh(lab), mods2_sha256=sh(m2))
+mx = open(os.path.join(O, "MODSX.BIN"), "rb").read()               # the enabler v2's single file: same treatment
+ox = mx.find(lab)
+assert ox > 0 and mx.count(lab) == 1, "labels not found once in MODSX.BIN"
+st.update(modsx_pre_b64=base64.b64encode(mx[:ox]).decode(), modsx_post_b64=base64.b64encode(mx[ox + len(lab):]).decode(),
+          modsx_sha256=sh(mx))
 open(os.path.join(HERE, "stick.json"), "w").write(json.dumps(st))
 print("stick.json: MODS.BIN %s, MODS2.BIN %s (labels %d B at %d left out)" % (st["mods_sha256"][:16], st["mods2_sha256"][:16], len(lab), off))
